@@ -1,0 +1,53 @@
+[package]
+name = "bifrost-halal-lending"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+
+[dependencies]
+# Use workspace dependencies (already configured in root Cargo.toml)
+bifrost-primitives = { workspace = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+frame-benchmarking = { workspace = true, optional = true }
+parity-scale-codec = { workspace = true, features = ["derive"] }
+scale-info = { workspace = true, features = ["derive"] }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+log = { workspace = true }
+
+# Multi-currency support (already in Bifrost)
+orml-traits = { workspace = true }
+orml-tokens = { workspace = true }
+
+# Price oracle (already in Bifrost)
+pallet-prices = { workspace = true }
+pallet-traits = { workspace = true }
+
+# For vToken handling
+bifrost-vtoken-minting = { workspace = true }
+bifrost-currencies = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "frame-support/std",
+    "frame-system/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "sp-core/std",
+    "sp-io/std",
+    "bifrost-primitives/std",
+    "orml-traits/std",
+    "pallet-prices/std",
+    "pallet-traits/std",
+    "log/std",
+]
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+]
+try-runtime = ["frame-support/try-runtime"]

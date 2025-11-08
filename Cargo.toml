@@ -4,6 +4,7 @@ members = [
 	"node/rpc",
 	"node/service",
 	"primitives",
+	"pallets/halal-lending",
 	"pallets/asset-registry",
 	"pallets/p-k-bridge",
 	"pallets/buy-back",
@@ -48,6 +49,7 @@ resolver = "2"
 [workspace.dependencies]
 
 # Bifrost Client
+bifrost-halal-lending = { path = "pallets/halal-lending", default-features = false }
 bifrost-cli                = { path = "node/cli" }
 bifrost-farming-rpc        = { path = "pallets/farming/rpc" }
 bifrost-flexible-fee-rpc   = { path = "pallets/flexible-fee/rpc" }
