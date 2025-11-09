@@ -88,9 +88,21 @@ impl orml_tokens::Config for Test {
     type DustRemovalWhitelist = Everything;
 }
 
+// Implement PriceProvider trait for MockOraclePriceProvider
+impl crate::pallet::PriceProvider<CurrencyId> for MockOraclePriceProvider {
+    type Price = sp_runtime::FixedU128;
+    
+    fn get_price(_currency_id: &CurrencyId) -> Option<Self::Price> {
+        // Return a mock price for testing
+        Some(sp_runtime::FixedU128::from_inner(1_000_000_000_000_000_000)) // 1.0
+    }
+}
+
 // Halal Lending configuration
 parameter_types! {
     pub const MaxLTV: Permill = Permill::from_percent(50);
+    pub const StakingRewardFee: Permill = Permill::from_percent(30); // 30%
+    pub const TreasuryAccount: u64 = 999; // Treasury account ID
 }
 
 impl pallet_halal_lending::Config for Test {
@@ -100,6 +112,8 @@ impl pallet_halal_lending::Config for Test {
     type LoanId = u64;
     type MaxLTV = MaxLTV;
     type WeightInfo = ();
+    type StakingRewardFee = StakingRewardFee;
+    type TreasuryAccount = TreasuryAccount;
 }
 
 // Mock currency IDs for testing
@@ -109,8 +123,6 @@ pub const MOCK_USDC: CurrencyId = CurrencyId::Token2(98);    // Mock USDC
 // Test accounts
 pub const ALICE: u64 = 1;
 pub const BOB: u64 = 2;
-pub const PALLET_ACCOUNT: u64 = 100;
-
 // Build genesis storage according to the mock runtime
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
@@ -134,3 +146,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     ext.execute_with(|| System::set_block_number(1));
     ext
 }
+
+// Add treasury account
+pub const TREASURY: u64 = 999;

@@ -17,14 +17,13 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use sp_runtime::{
-        traits::{AtLeast32BitUnsigned, AccountIdConversion},
-        Permill,
+        FixedU128, Permill, traits::{AccountIdConversion, AtLeast32BitUnsigned}
     };
     use parity_scale_codec::{Encode, Decode, MaxEncodedLen};
     use scale_info::TypeInfo;
     
     // Import Bifrost types
-    use bifrost_primitives::{CurrencyId, Balance, OraclePriceProvider, USDC};
+    use bifrost_primitives::{Balance, CurrencyId};
     use orml_traits::MultiCurrency;
 
     // Loan status
@@ -74,16 +73,24 @@ pub mod pallet {
     #[pallet::getter(fn next_loan_id)]
     pub type NextLoanId<T: Config> = StorageValue<_, T::LoanId, ValueQuery>;
 
+    /// Track original collateral amount (before rewards)
+    #[pallet::storage]
+    #[pallet::getter(fn original_collateral)]
+    pub type OriginalCollateral<T: Config> = StorageMap<_, Blake2_128Concat, T::LoanId, Balance, ValueQuery>;
 
-    #[pallet::config]
+    pub trait PriceProvider<CurrencyId> {
+        type Price;
+        fn get_price(currency_id: &CurrencyId) -> Option<Self::Price>;
+    }
+
+    #[pallet::config]    
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         
         /// Multi-currency support (use Bifrost's currencies pallet)
         type MultiCurrency: MultiCurrency<Self::AccountId, CurrencyId = CurrencyId, Balance = Balance>;
         
-        /// Price provider for collateral valuation (use Bifrost's prices pallet)
-        type PriceProvider: OraclePriceProvider;
+        type PriceProvider: PriceProvider<CurrencyId, Price = FixedU128>;
         
         /// Loan ID type
         type LoanId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaxEncodedLen;
@@ -94,11 +101,17 @@ pub mod pallet {
         
         /// Weight information for extrinsics
         type WeightInfo: WeightInfo;
+
+        #[pallet::constant]
+        type StakingRewardFee: Get<Permill>;
+    
+        /// Treasury account that receives platform revenue
+        type TreasuryAccount: Get<Self::AccountId>;
     }
 
-        #[pallet::call]
+    #[pallet::call]
     impl<T: Config> Pallet<T> {
-    /// Create a new loan by depositing vToken collateral
+        /// Create a new loan by depositing vToken collateral
     #[pallet::call_index(0)]
     #[pallet::weight(T::WeightInfo::create_loan())]
     pub fn create_loan(
@@ -112,7 +125,10 @@ pub mod pallet {
         
         // Get next loan ID
         let loan_id = NextLoanId::<T>::get();
-        
+        ensure!(
+            Self::is_valid_vtoken_collateral(vtoken_id),
+            Error::<T>::InvalidCollateralCurrency
+        );
         // Transfer vToken collateral from user to pallet
         T::MultiCurrency::transfer(
             vtoken_id,
@@ -135,6 +151,9 @@ pub mod pallet {
         
         // Store loan
         Loans::<T>::insert(loan_id, loan);
+
+        OriginalCollateral::<T>::insert(loan_id, collateral_amount);
+
         UserLoans::<T>::try_mutate(&who, |loans| {
             if let Some(ref mut loan_vec) = loans {
                 loan_vec.try_push(loan_id).map_err(|_| Error::<T>::TooManyLoans)?;
@@ -155,7 +174,7 @@ pub mod pallet {
             loan_amount,
             ExistenceRequirement::AllowDeath,
         )?;
-        
+
         Self::deposit_event(Event::LoanCreated { 
             loan_id, 
             borrower: who,
@@ -209,12 +228,87 @@ pub mod pallet {
         Self::deposit_event(Event::LoanRepaid { loan_id, borrower: who });
         Ok(())
     }
+
+        /// Claim accumulated staking rewards from locked collateral
+        /// Can be called by anyone (typically automated)
+        #[pallet::call_index(2)]
+        #[pallet::weight(T::WeightInfo::claim_rewards())]
+        pub fn claim_staking_rewards(
+        origin: OriginFor<T>,
+        loan_id: T::LoanId,
+    ) -> DispatchResult {
+        ensure_signed(origin)?; // Anyone can trigger
+        
+        let loan = Loans::<T>::get(loan_id)
+            .ok_or(Error::<T>::LoanNotFound)?;
+        
+        // Only claim from active loans
+        ensure!(loan.status == LoanStatus::Active, Error::<T>::LoanNotActive);
+        
+        // Get current vDOT balance (includes accumulated rewards)
+        let current_balance = T::MultiCurrency::free_balance(
+            loan.collateral_vtoken,
+            &Self::account_id()
+        );
+        
+        // Get original collateral amount
+        let original_amount = OriginalCollateral::<T>::get(loan_id);
+        
+        // Calculate rewards earned (current - original)
+        let rewards = current_balance.saturating_sub(original_amount);
+        
+        // Only proceed if there are rewards to claim
+        ensure!(rewards > 0, Error::<T>::NoRewardsToClaim);
+        
+        // Calculate platform's share (e.g., 30%)
+        let platform_share = T::StakingRewardFee::get().mul_floor(rewards);
+        
+        // Transfer platform's share to treasury
+        T::MultiCurrency::transfer(
+            loan.collateral_vtoken,
+            &Self::account_id(),
+            &T::TreasuryAccount::get(),
+            platform_share,
+            ExistenceRequirement::AllowDeath,
+        )?;
+        
+        // Emit event
+        Self::deposit_event(Event::RewardsClaimed {
+            loan_id,
+            total_rewards: rewards,
+            platform_share,
+            user_share: rewards.saturating_sub(platform_share),
+        });
+        
+        Ok(())
+    }
     }
 
     impl<T: Config> Pallet<T> {
         /// Get the account ID of the pallet
         pub fn account_id() -> T::AccountId {
             PalletId(*b"hlallend").into_account_truncating()
+        }
+        
+        /// Check if a currency is a valid vToken for collateral
+        pub fn is_valid_vtoken_collateral(currency_id: CurrencyId) -> bool {
+            matches!(
+                currency_id,
+                CurrencyId::VToken(_) | 
+                CurrencyId::VToken2(_) |
+                CurrencyId::VSToken(_) |
+                CurrencyId::VSToken2(_)
+            )
+        }
+        
+        /// Get the underlying token for a vToken
+        /// Example: vDOT (VToken2(0)) → DOT (Token2(0))
+        pub fn get_underlying_token(vtoken: CurrencyId) -> Option<CurrencyId> {
+            match vtoken {
+                CurrencyId::VToken2(id) => Some(CurrencyId::Token2(id)),
+                CurrencyId::VToken(symbol) => Some(CurrencyId::Token(symbol)),
+                _ => None,
+            }
         }
     }
 
@@ -241,6 +335,14 @@ pub mod pallet {
             borrower: T::AccountId,
             liquidator: T::AccountId,
         },
+
+         /// Staking rewards claimed [loan_id, total_rewards, platform_share, user_share]
+        RewardsClaimed {
+            loan_id: T::LoanId,
+            total_rewards: Balance,
+            platform_share: Balance,
+            user_share: Balance,
+        },
     }
 
     #[pallet::error]
@@ -261,12 +363,17 @@ pub mod pallet {
         ArithmeticOverflow,
         /// Too many loans for user
         TooManyLoans,
+        /// Collateral must be a valid vToken
+        InvalidCollateralCurrency,
+        /// No rewards available to claim
+        NoRewardsToClaim,
     }
 
     /// Weight functions trait (can use default weights for POC)
     pub trait WeightInfo {
         fn create_loan() -> Weight;
         fn repay_loan() -> Weight;
+        fn claim_rewards() -> Weight;
     }
 
     /// Default weight implementation for POC
@@ -275,6 +382,9 @@ pub mod pallet {
             Weight::from_parts(10_000, 0)
         }
         fn repay_loan() -> Weight {
+            Weight::from_parts(10_000, 0)
+        }
+        fn claim_rewards() -> Weight {
             Weight::from_parts(10_000, 0)
         }
     }

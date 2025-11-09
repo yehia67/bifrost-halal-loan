@@ -4,7 +4,6 @@ use crate::mock::*;
 use crate::pallet::{Error, Event, Loans, NextLoanId};
 use frame_support::{assert_ok, assert_noop};
 use orml_traits::MultiCurrency;
-use sp_runtime::traits::BadOrigin;
 
 #[test]
 fn test_create_loan_flow() {
@@ -239,5 +238,117 @@ fn test_loan_not_found() {
         
         println!("\n=== LOAN NOT FOUND TEST ===");
         println!("✅ Cannot repay non-existent loan");
+    });
+}
+
+
+#[test]
+fn test_claim_staking_rewards() {
+    new_test_ext().execute_with(|| {
+        // Create loan with 1,000 vDOT collateral
+        assert_ok!(HalalLending::create_loan(
+            RuntimeOrigin::signed(ALICE),
+            MOCK_VTOKEN,
+            1_000,
+            MOCK_USDC,
+            500
+        ));
+        
+        println!("\n=== SIMULATING STAKING REWARDS ===");
+        
+        // Simulate staking rewards by minting more vDOT to pallet
+        // In reality, vDOT balance grows automatically
+        assert_ok!(Tokens::deposit(
+            MOCK_VTOKEN,
+            &HalalLending::account_id(),
+            150 // 15% rewards after 1 year
+        ));
+        
+        println!("Pallet vDOT balance before claim: {}", 
+            Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id()));
+        println!("Treasury vDOT balance before claim: {}", 
+            Tokens::free_balance(MOCK_VTOKEN, &TREASURY));
+        
+        // Claim rewards (anyone can trigger)
+        assert_ok!(HalalLending::claim_staking_rewards(
+            RuntimeOrigin::signed(BOB), // Anyone can call
+            0 // loan_id
+        ));
+        
+        println!("\n=== AFTER REWARD CLAIM ===");
+        println!("Pallet vDOT balance: {}", 
+            Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id()));
+        println!("Treasury vDOT balance: {}", 
+            Tokens::free_balance(MOCK_VTOKEN, &TREASURY));
+        
+        // Verify reward distribution
+        // Platform gets 30% of 150 = 45 vDOT
+        assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &TREASURY), 45);
+        
+        // Pallet keeps: 1,000 (original) + 105 (user's 70% of rewards) = 1,105
+        assert_eq!(
+            Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id()), 
+            1_105
+        );
+        
+        // Verify event
+        System::assert_has_event(RuntimeEvent::HalalLending(Event::RewardsClaimed {
+            loan_id: 0,
+            total_rewards: 150,
+            platform_share: 45,
+            user_share: 105,
+        }));
+        
+        println!("\n✅ REVENUE COLLECTION SUCCESS:");
+        println!("   - Platform earned: 45 vDOT (30%)");
+        println!("   - User keeps: 105 vDOT (70%)");
+        println!("   - Total rewards: 150 vDOT");
+    });
+}
+
+
+#[test]
+fn test_full_flow_with_bifrost_vtokens() {
+    new_test_ext().execute_with(|| {
+        println!("\n=== FULL HALAL LENDING FLOW ===");
+        
+        // Step 1: User already has vDOT (minted via Bifrost app)
+        println!("Step 1: Alice has 10,000 vDOT (minted from app.bifrost.io)");
+        assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &ALICE), 10_000);
+        
+        // Step 2: Create loan using vDOT as collateral
+        println!("Step 2: Alice creates loan with 1,000 vDOT collateral");
+        assert_ok!(HalalLending::create_loan(
+            RuntimeOrigin::signed(ALICE),
+            MOCK_VTOKEN,
+            1_000,
+            MOCK_USDC,
+            500
+        ));
+        
+        // Step 3: Verify loan created
+        println!("Step 3: Alice receives 500 USDC loan");
+        assert_eq!(Tokens::free_balance(MOCK_USDC, &ALICE), 500);
+        assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &ALICE), 9_000);
+        
+        // Step 4: Platform holds vDOT (earning staking rewards!)
+        println!("Step 4: Platform holds 1,000 vDOT (earning staking rewards)");
+        assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id()), 1_000);
+        
+        // Step 5: Repay loan
+        println!("Step 5: Alice repays EXACTLY 500 USDC (no interest!)");
+        assert_ok!(HalalLending::repay_loan(
+            RuntimeOrigin::signed(ALICE),
+            0
+        ));
+        
+        // Step 6: Get collateral back
+        println!("Step 6: Alice gets her 1,000 vDOT back");
+        assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &ALICE), 10_000);
+        
+        println!("\n✅ COMPLETE HALAL FLOW:");
+        println!("   - No interest charged to borrower");
+        println!("   - Platform earned staking rewards on locked vDOT");
+        println!("   - User got exact collateral back");
     });
 }
