@@ -117,10 +117,12 @@ impl crate::pallet::PriceProvider<CurrencyId> for MockPriceProvider {
 	type Price = sp_runtime::FixedU128;
 
 	fn get_price(currency_id: &CurrencyId) -> Option<Self::Price> {
-		PRICES.with(|p| p.borrow().get(currency_id).copied()).or_else(|| {
-			// Default price of 1.0 if not set
-			Some(sp_runtime::FixedU128::from_inner(1_000_000_000_000_000_000))
-		})
+		PRICES
+			.with(|p| p.borrow().get(currency_id).copied())
+			.or_else(|| {
+				// Default price of 1.0 if not set
+				Some(sp_runtime::FixedU128::from_inner(1_000_000_000_000_000_000))
+			})
 	}
 }
 

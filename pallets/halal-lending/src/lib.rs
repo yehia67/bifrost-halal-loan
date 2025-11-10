@@ -125,13 +125,14 @@ pub mod pallet {
 				.ok_or(Error::<T>::PriceNotAvailable)?;
 
 			// Get price of loan currency in USD
-			let loan_price = T::PriceProvider::get_price(&loan_currency)
-				.ok_or(Error::<T>::PriceNotAvailable)?;
+			let loan_price =
+				T::PriceProvider::get_price(&loan_currency).ok_or(Error::<T>::PriceNotAvailable)?;
 
 			// Calculate collateral value in loan currency
 			// value = (collateral_amount * collateral_price) / loan_price
-			let collateral_value_usd =
-				collateral_price.checked_mul_int(collateral_amount).ok_or(Error::<T>::ArithmeticOverflow)?;
+			let collateral_value_usd = collateral_price
+				.checked_mul_int(collateral_amount)
+				.ok_or(Error::<T>::ArithmeticOverflow)?;
 
 			let value = loan_price
 				.reciprocal()
@@ -337,10 +338,7 @@ pub mod pallet {
 		/// Anyone can call this to liquidate unhealthy loans
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::liquidate_loan())]
-		pub fn liquidate_loan(
-			origin: OriginFor<T>,
-			loan_id: T::LoanId,
-		) -> DispatchResult {
+		pub fn liquidate_loan(origin: OriginFor<T>, loan_id: T::LoanId) -> DispatchResult {
 			let liquidator = ensure_signed(origin)?;
 
 			// Get loan details
@@ -350,12 +348,17 @@ pub mod pallet {
 			ensure!(loan.status == LoanStatus::Active, Error::<T>::LoanNotActive);
 
 			// Check if loan is eligible for liquidation
-			ensure!(Self::is_liquidatable(loan_id)?, Error::<T>::LoanNotLiquidatable);
+			ensure!(
+				Self::is_liquidatable(loan_id)?,
+				Error::<T>::LoanNotLiquidatable
+			);
 
 			// Calculate liquidation bonus
 			let bonus = T::LiquidationBonus::get().mul_floor(loan.collateral_amount);
-			let liquidator_reward =
-				loan.collateral_amount.checked_add(bonus).ok_or(Error::<T>::ArithmeticOverflow)?;
+			let liquidator_reward = loan
+				.collateral_amount
+				.checked_add(bonus)
+				.ok_or(Error::<T>::ArithmeticOverflow)?;
 
 			// Liquidator pays off the loan
 			T::MultiCurrency::transfer(

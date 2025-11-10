@@ -417,122 +417,122 @@ fn test_full_flow_with_bifrost_vtokens() {
 
 #[test]
 fn test_liquidation_when_ltv_exceeds_threshold() {
-    new_test_ext().execute_with(|| {
-        println!("\n=== LIQUIDATION TEST ===");
-        
-        // Setup: Create loan with 1,000 vDOT collateral, 500 USDC loan
-        assert_ok!(HalalLending::create_loan(
-            RuntimeOrigin::signed(ALICE),
-            MOCK_VTOKEN,
-            1_000,
-            MOCK_USDC,
-            500
-        ));
-        
-        println!("Initial loan created:");
-        println!("  - Collateral: 1,000 vDOT");
-        println!("  - Loan: 500 USDC");
-        println!("  - Initial LTV: 50%");
-        
-        // Simulate price drop: vDOT price drops 40%
-        // This makes LTV = 500 / (1000 * 0.6) = 83.3% > 75% threshold
-        MockPriceProvider::set_price(MOCK_VTOKEN, FixedU128::from_rational(6, 10)); // $0.60
-        
-        println!("\n💥 Price crash! vDOT drops to $0.60");
-        
-        let ltv = HalalLending::calculate_ltv(0).unwrap();
-        println!("  - New LTV: {}%", ltv.deconstruct() as f64 / 10000.0);
-        
-        // Verify loan is liquidatable
-        assert!(HalalLending::is_liquidatable(0).unwrap());
-        
-        // Bob liquidates the loan
-        println!("\n🔨 Bob liquidates the loan");
-        
-        // Give Bob enough USDC to cover the debt
-        assert_ok!(Tokens::deposit(MOCK_USDC, &BOB, 500));
-        
-        assert_ok!(HalalLending::liquidate_loan(
-            RuntimeOrigin::signed(BOB),
-            0
-        ));
-        
-        // Verify liquidation results
-        let loan = HalalLending::loans(0).unwrap();
-        assert_eq!(loan.status, LoanStatus::Liquidated);
-        
-        // Bob should receive collateral + 5% bonus
-        let expected_reward = 1_000 + 50; // 1,000 + 5%
-        // Bob started with 5,000 vDOT, now has 5,000 + 1,050 = 6,050
-        assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &BOB), 5_000 + expected_reward);
-        
-        // Bob paid 500 USDC
-        assert_eq!(Tokens::free_balance(MOCK_USDC, &BOB), 0);
-        
-        println!("\n✅ LIQUIDATION SUCCESS:");
-        println!("  - Bob paid: 500 USDC");
-        println!("  - Bob received: {} vDOT (including 5% bonus)", expected_reward);
-        println!("  - Loan status: Liquidated");
-        
-        // Verify event
-        System::assert_has_event(RuntimeEvent::HalalLending(Event::LoanLiquidated {
-            loan_id: 0,
-            borrower: ALICE,
-            liquidator: BOB,
-            collateral_liquidated: expected_reward,
-            debt_covered: 500,
-        }));
-    });
+	new_test_ext().execute_with(|| {
+		println!("\n=== LIQUIDATION TEST ===");
+
+		// Setup: Create loan with 1,000 vDOT collateral, 500 USDC loan
+		assert_ok!(HalalLending::create_loan(
+			RuntimeOrigin::signed(ALICE),
+			MOCK_VTOKEN,
+			1_000,
+			MOCK_USDC,
+			500
+		));
+
+		println!("Initial loan created:");
+		println!("  - Collateral: 1,000 vDOT");
+		println!("  - Loan: 500 USDC");
+		println!("  - Initial LTV: 50%");
+
+		// Simulate price drop: vDOT price drops 40%
+		// This makes LTV = 500 / (1000 * 0.6) = 83.3% > 75% threshold
+		MockPriceProvider::set_price(MOCK_VTOKEN, FixedU128::from_rational(6, 10)); // $0.60
+
+		println!("\n💥 Price crash! vDOT drops to $0.60");
+
+		let ltv = HalalLending::calculate_ltv(0).unwrap();
+		println!("  - New LTV: {}%", ltv.deconstruct() as f64 / 10000.0);
+
+		// Verify loan is liquidatable
+		assert!(HalalLending::is_liquidatable(0).unwrap());
+
+		// Bob liquidates the loan
+		println!("\n🔨 Bob liquidates the loan");
+
+		// Give Bob enough USDC to cover the debt
+		assert_ok!(Tokens::deposit(MOCK_USDC, &BOB, 500));
+
+		assert_ok!(HalalLending::liquidate_loan(RuntimeOrigin::signed(BOB), 0));
+
+		// Verify liquidation results
+		let loan = HalalLending::loans(0).unwrap();
+		assert_eq!(loan.status, LoanStatus::Liquidated);
+
+		// Bob should receive collateral + 5% bonus
+		let expected_reward = 1_000 + 50; // 1,000 + 5%
+									// Bob started with 5,000 vDOT, now has 5,000 + 1,050 = 6,050
+		assert_eq!(
+			Tokens::free_balance(MOCK_VTOKEN, &BOB),
+			5_000 + expected_reward
+		);
+
+		// Bob paid 500 USDC
+		assert_eq!(Tokens::free_balance(MOCK_USDC, &BOB), 0);
+
+		println!("\n✅ LIQUIDATION SUCCESS:");
+		println!("  - Bob paid: 500 USDC");
+		println!(
+			"  - Bob received: {} vDOT (including 5% bonus)",
+			expected_reward
+		);
+		println!("  - Loan status: Liquidated");
+
+		// Verify event
+		System::assert_has_event(RuntimeEvent::HalalLending(Event::LoanLiquidated {
+			loan_id: 0,
+			borrower: ALICE,
+			liquidator: BOB,
+			collateral_liquidated: expected_reward,
+			debt_covered: 500,
+		}));
+	});
 }
 
 #[test]
 fn test_cannot_liquidate_healthy_loan() {
-    new_test_ext().execute_with(|| {
-        // Create healthy loan (LTV = 50%)
-        assert_ok!(HalalLending::create_loan(
-            RuntimeOrigin::signed(ALICE),
-            MOCK_VTOKEN,
-            1_000,
-            MOCK_USDC,
-            500
-        ));
-        
-        // Try to liquidate (should fail)
-        assert_ok!(Tokens::deposit(MOCK_USDC, &BOB, 500));
-        
-        assert_noop!(
-            HalalLending::liquidate_loan(
-                RuntimeOrigin::signed(BOB),
-                0
-            ),
-            Error::<Test>::LoanNotLiquidatable
-        );
-        
-        println!("\n✅ Healthy loans protected from liquidation");
-    });
+	new_test_ext().execute_with(|| {
+		// Create healthy loan (LTV = 50%)
+		assert_ok!(HalalLending::create_loan(
+			RuntimeOrigin::signed(ALICE),
+			MOCK_VTOKEN,
+			1_000,
+			MOCK_USDC,
+			500
+		));
+
+		// Try to liquidate (should fail)
+		assert_ok!(Tokens::deposit(MOCK_USDC, &BOB, 500));
+
+		assert_noop!(
+			HalalLending::liquidate_loan(RuntimeOrigin::signed(BOB), 0),
+			Error::<Test>::LoanNotLiquidatable
+		);
+
+		println!("\n✅ Healthy loans protected from liquidation");
+	});
 }
 
 #[test]
 fn test_ltv_calculation() {
-    new_test_ext().execute_with(|| {
-        // Create loan
-        assert_ok!(HalalLending::create_loan(
-            RuntimeOrigin::signed(ALICE),
-            MOCK_VTOKEN,
-            1_000,
-            MOCK_USDC,
-            500
-        ));
-        
-        // Calculate LTV
-        let ltv = HalalLending::calculate_ltv(0).unwrap();
-        
-        // LTV should be 50% (500 / 1000)
-        assert_eq!(ltv, Permill::from_percent(50));
-        
-        println!("\n✅ LTV Calculation:");
-        println!("  - Collateral: 1,000 vDOT @ $1.00 = $1,000");
-        println!("  - Loan: 500 USDC @ $1.00 = $500");
-        println!("  - LTV: 50%");
-    });
+	new_test_ext().execute_with(|| {
+		// Create loan
+		assert_ok!(HalalLending::create_loan(
+			RuntimeOrigin::signed(ALICE),
+			MOCK_VTOKEN,
+			1_000,
+			MOCK_USDC,
+			500
+		));
+
+		// Calculate LTV
+		let ltv = HalalLending::calculate_ltv(0).unwrap();
+
+		// LTV should be 50% (500 / 1000)
+		assert_eq!(ltv, Permill::from_percent(50));
+
+		println!("\n✅ LTV Calculation:");
+		println!("  - Collateral: 1,000 vDOT @ $1.00 = $1,000");
+		println!("  - Loan: 500 USDC @ $1.00 = $500");
+		println!("  - LTV: 50%");
+	});
 }
