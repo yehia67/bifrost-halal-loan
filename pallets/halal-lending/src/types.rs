@@ -39,6 +39,7 @@ pub trait WeightInfo {
 	fn create_loan() -> Weight;
 	fn repay_loan() -> Weight;
 	fn claim_rewards() -> Weight;
+	fn liquidate_loan() -> Weight;
 }
 
 /// Default weight implementation for POC
@@ -50,6 +51,9 @@ impl WeightInfo for () {
 		Weight::from_parts(10_000, 0)
 	}
 	fn claim_rewards() -> Weight {
+		Weight::from_parts(10_000, 0)
+	}
+	fn liquidate_loan() -> Weight {
 		Weight::from_parts(10_000, 0)
 	}
 }
