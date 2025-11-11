@@ -353,13 +353,6 @@ pub mod pallet {
 				Error::<T>::LoanNotLiquidatable
 			);
 
-			// Calculate liquidation bonus
-			let bonus = T::LiquidationBonus::get().mul_floor(loan.collateral_amount);
-			let liquidator_reward = loan
-				.collateral_amount
-				.checked_add(bonus)
-				.ok_or(Error::<T>::ArithmeticOverflow)?;
-
 			// Liquidator pays off the loan
 			T::MultiCurrency::transfer(
 				loan.loan_currency,
@@ -369,12 +362,12 @@ pub mod pallet {
 				ExistenceRequirement::AllowDeath,
 			)?;
 
-			// Liquidator receives collateral + bonus
+			// Liquidator receives collateral
 			T::MultiCurrency::transfer(
 				loan.collateral_vtoken,
 				&Self::account_id(),
 				&liquidator,
-				liquidator_reward,
+				loan.collateral_amount,
 				ExistenceRequirement::AllowDeath,
 			)?;
 
@@ -387,7 +380,7 @@ pub mod pallet {
 				loan_id,
 				borrower: loan.borrower,
 				liquidator: liquidator.clone(),
-				collateral_liquidated: liquidator_reward,
+				collateral_liquidated: loan.collateral_amount,
 				debt_covered: loan.loan_amount,
 			});
 

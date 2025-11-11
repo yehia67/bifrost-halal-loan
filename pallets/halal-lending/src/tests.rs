@@ -458,12 +458,12 @@ fn test_liquidation_when_ltv_exceeds_threshold() {
 		let loan = HalalLending::loans(0).unwrap();
 		assert_eq!(loan.status, LoanStatus::Liquidated);
 
-		// Bob should receive collateral + 5% bonus
-		let expected_reward = 1_000 + 50; // 1,000 + 5%
-									// Bob started with 5,000 vDOT, now has 5,000 + 1,050 = 6,050
+		// Bob should receive collateral
+		let collateral_received = 1_000; // Just the collateral amount
+								   // Bob started with 5,000 vDOT, now has 5,000 + 1,000 = 6,000
 		assert_eq!(
 			Tokens::free_balance(MOCK_VTOKEN, &BOB),
-			5_000 + expected_reward
+			5_000 + collateral_received
 		);
 
 		// Bob paid 500 USDC
@@ -472,8 +472,8 @@ fn test_liquidation_when_ltv_exceeds_threshold() {
 		println!("\n✅ LIQUIDATION SUCCESS:");
 		println!("  - Bob paid: 500 USDC");
 		println!(
-			"  - Bob received: {} vDOT (including 5% bonus)",
-			expected_reward
+			"  - Bob received: {} vDOT (collateral at discount)",
+			collateral_received
 		);
 		println!("  - Loan status: Liquidated");
 
@@ -482,7 +482,7 @@ fn test_liquidation_when_ltv_exceeds_threshold() {
 			loan_id: 0,
 			borrower: ALICE,
 			liquidator: BOB,
-			collateral_liquidated: expected_reward,
+			collateral_liquidated: collateral_received,
 			debt_covered: 500,
 		}));
 	});
