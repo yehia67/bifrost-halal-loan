@@ -339,6 +339,7 @@ pub mod pallet {
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::liquidate_loan())]
 		pub fn liquidate_loan(origin: OriginFor<T>, loan_id: T::LoanId) -> DispatchResult {
+			let og_caller = origin.clone();
 			let liquidator = ensure_signed(origin)?;
 
 			// Get loan details
@@ -352,6 +353,30 @@ pub mod pallet {
 				Self::is_liquidatable(loan_id)?,
 				Error::<T>::LoanNotLiquidatable
 			);
+
+			// Claim staking rewards for platform
+			let _ = Self::claim_staking_rewards(og_caller, loan_id);
+
+			// Get original collateral amount
+			let original_amount = OriginalCollateral::<T>::get(loan_id);
+
+			// Get current vDOT balance (includes accumulated rewards of loanee)
+			let current_balance =
+				T::MultiCurrency::free_balance(loan.collateral_vtoken, &Self::account_id());
+
+			// Calculate rewards earned by loanee (current - original)
+			let loanee_rewards = current_balance.saturating_sub(original_amount);
+
+			if loanee_rewards > 0 {
+				// Transfer Loanee rewards to loanee
+				T::MultiCurrency::transfer(
+					loan.collateral_vtoken,
+					&Self::account_id(),
+					&loan.borrower,
+					loanee_rewards,
+					ExistenceRequirement::AllowDeath,
+				)?;
+			}
 
 			// Liquidator pays off the loan
 			T::MultiCurrency::transfer(
