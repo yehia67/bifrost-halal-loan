@@ -1,7 +1,7 @@
 // Tests for halal-lending pallet
 
 use crate::mock::*;
-use crate::pallet::{Error, Event, LoanStatus, Loans, NextLoanId};
+use crate::pallet::{Error, Event, LoanStatus, Loans, LoanRewards, NextLoanId};
 use frame_support::{assert_noop, assert_ok};
 use orml_traits::MultiCurrency;
 use sp_runtime::{FixedU128, Permill};
@@ -296,9 +296,9 @@ fn test_loan_not_found() {
 }
 
 #[test]
-fn test_claim_staking_rewards() {
-	new_test_ext().execute_with(|| {
-		// Create loan with 1,000 vDOT collateral
+fn test_distribute_cycle_rewards() {
+    new_test_ext().execute_with(|| {
+		// Alice creates first loan
 		assert_ok!(HalalLending::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
@@ -307,32 +307,69 @@ fn test_claim_staking_rewards() {
 			500
 		));
 
-		println!("\n=== SIMULATING STAKING REWARDS ===");
+		// Bob creates a loan
+		assert_ok!(HalalLending::create_loan(
+			RuntimeOrigin::signed(BOB),
+			MOCK_VTOKEN,
+			2_000,
+			MOCK_USDC,
+			1_000
+		));
 
-		// Simulate staking rewards by minting more vDOT to pallet
-		// In reality, vDOT balance grows automatically
-		assert_ok!(Tokens::deposit(
+		// Alice creates second loan
+		assert_ok!(HalalLending::create_loan(
+			RuntimeOrigin::signed(ALICE),
+			MOCK_VTOKEN,
+			500,
+			MOCK_USDC,
+			250
+		));
+
+		// Verify loan IDs incremented correctly
+		assert_eq!(NextLoanId::<Test>::get(), 3);
+
+		// Verify each loan
+		let loan0 = Loans::<Test>::get(0).unwrap();
+		assert_eq!(loan0.borrower, ALICE);
+		assert_eq!(loan0.loan_amount, 500);
+
+		let loan1 = Loans::<Test>::get(1).unwrap();
+		assert_eq!(loan1.borrower, BOB);
+		assert_eq!(loan1.loan_amount, 1_000);
+
+		let loan2 = Loans::<Test>::get(2).unwrap();
+		assert_eq!(loan2.borrower, ALICE);
+		assert_eq!(loan2.loan_amount, 250);
+
+        assert_ok!(Tokens::deposit(
 			MOCK_VTOKEN,
 			&HalalLending::account_id(),
-			150 // 15% rewards after 1 year
+			350 // simulate staking rewards
 		));
 
-		println!(
-			"Pallet vDOT balance before claim: {}",
-			Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id())
-		);
-		println!(
-			"Treasury vDOT balance before claim: {}",
-			Tokens::free_balance(MOCK_VTOKEN, &TREASURY)
-		);
+        let _ = HalalLending::distribute_cycle_rewards(RuntimeOrigin::signed(ALICE), 350);
+        
+        assert_eq!(LoanRewards::<Test>::get(0), 100);
+        assert_eq!(LoanRewards::<Test>::get(1), 200);
+        assert_eq!(LoanRewards::<Test>::get(2), 50);
+        
+        let _ = HalalLending::claim_loan_rewards(0);
+        // Verify event
+		System::assert_has_event(RuntimeEvent::HalalLending(Event::RewardsClaimed {
+			loan_id: 0,
+			total_rewards: 100,
+			platform_share: 30,
+			user_share: 70,
+		}));
+        // Verify reward distribution, 30% of each reward
+		assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &TREASURY), 30);
+        let _ = HalalLending::claim_loan_rewards(1);
+        assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &TREASURY), 90);
+        let _ = HalalLending::claim_loan_rewards(2);
+        // 30% of total rewards
+        assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &TREASURY), 105);
 
-		// Claim rewards (anyone can trigger)
-		assert_ok!(HalalLending::claim_staking_rewards(
-			RuntimeOrigin::signed(BOB), // Anyone can call
-			0                           // loan_id
-		));
-
-		println!("\n=== AFTER REWARD CLAIM ===");
+        println!("\n=== AFTER REWARD CLAIM ===");
 		println!(
 			"Pallet vDOT balance: {}",
 			Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id())
@@ -342,31 +379,9 @@ fn test_claim_staking_rewards() {
 			Tokens::free_balance(MOCK_VTOKEN, &TREASURY)
 		);
 
-		// Verify reward distribution
-		// Total vDOT: 1,000 (initial) + 1,000 (collateral) + 150 (rewards) = 2,150
-		// Platform gets 30% of 150 = 45 vDOT... but wait, the claim_rewards logic uses current_balance - original
-		// current_balance = 2,150, original = 1,000, rewards = 1,150, platform_share = 30% of 1,150 = 345
-		assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &TREASURY), 345);
-
-		// Pallet keeps: 2,150 - 345 = 1,805
-		assert_eq!(
-			Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id()),
-			1_805
-		);
-
-		// Verify event
-		System::assert_has_event(RuntimeEvent::HalalLending(Event::RewardsClaimed {
-			loan_id: 0,
-			total_rewards: 1_150,
-			platform_share: 345,
-			user_share: 805,
-		}));
-
 		println!("\n✅ REVENUE COLLECTION SUCCESS:");
-		println!("   - Platform earned: 345 vDOT (30%)");
-		println!("   - User keeps: 805 vDOT (70%)");
-		println!("   - Total rewards: 1,150 vDOT");
-	});
+		println!("   - Platform earned: 105 vDOT (30%)");
+});
 }
 
 #[test]

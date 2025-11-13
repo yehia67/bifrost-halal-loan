@@ -22,6 +22,7 @@ pub struct LoanPosition<AccountId, BlockNumber> {
 	pub collateral_amount: Balance,
 	pub loan_currency: CurrencyId,
 	pub loan_amount: Balance,
+    pub loan_reward: Balance,
 	pub created_at: BlockNumber,
 	pub status: LoanStatus,
 }
@@ -38,7 +39,7 @@ pub trait PriceProvider<CurrencyId> {
 pub trait WeightInfo {
 	fn create_loan() -> Weight;
 	fn repay_loan() -> Weight;
-	fn claim_rewards() -> Weight;
+	fn distribute_cycle_rewards() -> Weight;
 	fn liquidate_loan() -> Weight;
 }
 
@@ -50,7 +51,7 @@ impl WeightInfo for () {
 	fn repay_loan() -> Weight {
 		Weight::from_parts(10_000, 0)
 	}
-	fn claim_rewards() -> Weight {
+	fn distribute_cycle_rewards() -> Weight {
 		Weight::from_parts(10_000, 0)
 	}
 	fn liquidate_loan() -> Weight {
