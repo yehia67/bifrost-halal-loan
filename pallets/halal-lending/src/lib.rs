@@ -170,7 +170,10 @@ pub mod pallet {
 			// Calculate rewards earned (current - original)
 			let rewards = current_balance.saturating_sub(original_amount);
 
-			ensure!(rewards > 0, Error::<T>::NoRewardsToClaim);
+			// If no rewards, return early with 0 (don't fail)
+			if rewards == 0 {
+				return Ok(0);
+			}
 
 			let platform_share = T::StakingRewardFee::get().mul_floor(rewards);
 
