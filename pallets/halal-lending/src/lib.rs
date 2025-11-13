@@ -156,6 +156,42 @@ pub mod pallet {
 
 			Ok(current_ltv >= threshold)
 		}
+
+		fn do_claim_staking_rewards(loan_id: T::LoanId) -> Result<Balance, DispatchError> {
+			let loan = Loans::<T>::get(loan_id).ok_or(Error::<T>::LoanNotFound)?;
+
+			ensure!(loan.status == LoanStatus::Active, Error::<T>::LoanNotActive);
+
+			let current_balance =
+				T::MultiCurrency::free_balance(loan.collateral_vtoken, &Self::account_id());
+
+			let original_amount = OriginalCollateral::<T>::get(loan_id);
+
+			// Calculate rewards earned (current - original)
+			let rewards = current_balance.saturating_sub(original_amount);
+
+			ensure!(rewards > 0, Error::<T>::NoRewardsToClaim);
+
+			let platform_share = T::StakingRewardFee::get().mul_floor(rewards);
+
+			T::MultiCurrency::transfer(
+				loan.collateral_vtoken,
+				&Self::account_id(),
+				&T::TreasuryAccount::get(),
+				platform_share,
+				ExistenceRequirement::AllowDeath,
+			)?;
+
+			// Emit event
+			Self::deposit_event(Event::RewardsClaimed {
+				loan_id,
+				total_rewards: rewards,
+				platform_share,
+				user_share: rewards.saturating_sub(platform_share),
+			});
+
+			Ok(platform_share)
+		}
 	}
 
 	#[pallet::call]
@@ -292,45 +328,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::claim_rewards())]
 		pub fn claim_staking_rewards(origin: OriginFor<T>, loan_id: T::LoanId) -> DispatchResult {
 			ensure_signed(origin)?; // Anyone can trigger
-
-			let loan = Loans::<T>::get(loan_id).ok_or(Error::<T>::LoanNotFound)?;
-
-			// Only claim from active loans
-			ensure!(loan.status == LoanStatus::Active, Error::<T>::LoanNotActive);
-
-			// Get current vDOT balance (includes accumulated rewards)
-			let current_balance =
-				T::MultiCurrency::free_balance(loan.collateral_vtoken, &Self::account_id());
-
-			// Get original collateral amount
-			let original_amount = OriginalCollateral::<T>::get(loan_id);
-
-			// Calculate rewards earned (current - original)
-			let rewards = current_balance.saturating_sub(original_amount);
-
-			// Only proceed if there are rewards to claim
-			ensure!(rewards > 0, Error::<T>::NoRewardsToClaim);
-
-			// Calculate platform's share (e.g., 30%)
-			let platform_share = T::StakingRewardFee::get().mul_floor(rewards);
-
-			// Transfer platform's share to treasury
-			T::MultiCurrency::transfer(
-				loan.collateral_vtoken,
-				&Self::account_id(),
-				&T::TreasuryAccount::get(),
-				platform_share,
-				ExistenceRequirement::AllowDeath,
-			)?;
-
-			// Emit event
-			Self::deposit_event(Event::RewardsClaimed {
-				loan_id,
-				total_rewards: rewards,
-				platform_share,
-				user_share: rewards.saturating_sub(platform_share),
-			});
-
+			Self::do_claim_staking_rewards(loan_id)?;
 			Ok(())
 		}
 
@@ -339,7 +337,6 @@ pub mod pallet {
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::liquidate_loan())]
 		pub fn liquidate_loan(origin: OriginFor<T>, loan_id: T::LoanId) -> DispatchResult {
-			let og_caller = origin.clone();
 			let liquidator = ensure_signed(origin)?;
 
 			// Get loan details
@@ -354,8 +351,8 @@ pub mod pallet {
 				Error::<T>::LoanNotLiquidatable
 			);
 
-			// Claim staking rewards for platform
-			let _ = Self::claim_staking_rewards(og_caller, loan_id);
+			// Try to claim staking rewards for platform (ignore if no rewards available)
+			let _ = Self::do_claim_staking_rewards(loan_id);
 
 			// Get original collateral amount
 			let original_amount = OriginalCollateral::<T>::get(loan_id);
