@@ -1,7 +1,7 @@
 // Mock runtime for testing halal-lending pallet
 
 use crate as pallet_halal_lending;
-use bifrost_primitives::{Balance, CurrencyId, MockOraclePriceProvider};
+use bifrost_primitives::{Balance, CurrencyId};
 use frame_support::{
 	parameter_types,
 	traits::{ConstU32, Everything},
@@ -88,19 +88,49 @@ impl orml_tokens::Config for Test {
 	type DustRemovalWhitelist = Everything;
 }
 
-// Implement PriceProvider trait for MockOraclePriceProvider
-impl crate::pallet::PriceProvider<CurrencyId> for MockOraclePriceProvider {
+// Mock price provider with dynamic price support for liquidation testing
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+
+thread_local! {
+	static PRICES: RefCell<BTreeMap<CurrencyId, sp_runtime::FixedU128>> = RefCell::new(BTreeMap::new());
+}
+
+pub struct MockPriceProvider;
+
+impl MockPriceProvider {
+	pub fn set_price(currency_id: CurrencyId, price: sp_runtime::FixedU128) {
+		PRICES.with(|p| {
+			p.borrow_mut().insert(currency_id, price);
+		});
+	}
+
+	pub fn reset_prices() {
+		PRICES.with(|p| {
+			p.borrow_mut().clear();
+		});
+	}
+}
+
+// Implement PriceProvider trait for MockPriceProvider
+impl crate::pallet::PriceProvider<CurrencyId> for MockPriceProvider {
 	type Price = sp_runtime::FixedU128;
 
-	fn get_price(_currency_id: &CurrencyId) -> Option<Self::Price> {
-		// Return a mock price for testing
-		Some(sp_runtime::FixedU128::from_inner(1_000_000_000_000_000_000)) // 1.0
+	fn get_price(currency_id: &CurrencyId) -> Option<Self::Price> {
+		PRICES
+			.with(|p| p.borrow().get(currency_id).copied())
+			.or_else(|| {
+				// Default price of 1.0 if not set
+				Some(sp_runtime::FixedU128::from_inner(1_000_000_000_000_000_000))
+			})
 	}
 }
 
 // Halal Lending configuration
 parameter_types! {
-	pub const MaxLTV: Permill = Permill::from_percent(50);
+	pub const MaxLTV: Permill = Permill::from_percent(50); // 50% max LTV for borrowing
+	pub const LiquidationThreshold: Permill = Permill::from_percent(75); // 75% triggers liquidation
+	pub const LiquidationBonus: Permill = Permill::from_percent(5); // 5% bonus for liquidators
 	pub const StakingRewardFee: Permill = Permill::from_percent(30); // 30%
 	pub const TreasuryAccount: u64 = 999; // Treasury account ID
 }
@@ -108,9 +138,11 @@ parameter_types! {
 impl pallet_halal_lending::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MultiCurrency = Tokens;
-	type PriceProvider = MockOraclePriceProvider;
+	type PriceProvider = MockPriceProvider;
 	type LoanId = u64;
 	type MaxLTV = MaxLTV;
+	type LiquidationThreshold = LiquidationThreshold;
+	type LiquidationBonus = LiquidationBonus;
 	type WeightInfo = ();
 	type StakingRewardFee = StakingRewardFee;
 	type TreasuryAccount = TreasuryAccount;
@@ -139,6 +171,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			(BOB, MOCK_VTOKEN, 5_000),
 			// Give the pallet 100,000 mock USDC to lend out
 			(pallet_account, MOCK_USDC, 100_000),
+			// Give the pallet some vTokens to cover liquidation bonuses
+			(pallet_account, MOCK_VTOKEN, 1_000),
 		],
 	}
 	.assimilate_storage(&mut t)

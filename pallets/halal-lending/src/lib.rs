@@ -22,7 +22,7 @@ pub mod pallet {
 	use parity_scale_codec::MaxEncodedLen;
 	use sp_runtime::{
 		traits::{AccountIdConversion, AtLeast32BitUnsigned},
-		FixedU128, Permill,
+		FixedPointNumber, FixedU128, Permill,
 	};
 
 	// Import Bifrost types
@@ -75,6 +75,14 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxLTV: Get<Permill>;
 
+		/// Maximum LTV ratio before liquidation (e.g., 75%)
+		#[pallet::constant]
+		type LiquidationThreshold: Get<Permill>;
+
+		/// Liquidation bonus for liquidators (e.g., 5%)
+		#[pallet::constant]
+		type LiquidationBonus: Get<Permill>;
+
 		/// Weight information for extrinsics
 		type WeightInfo: WeightInfo;
 
@@ -83,6 +91,110 @@ pub mod pallet {
 
 		/// Treasury account that receives platform revenue
 		type TreasuryAccount: Get<Self::AccountId>;
+	}
+
+	// Helper functions implementation
+	impl<T: Config> Pallet<T> {
+		/// Calculate current LTV ratio for a loan
+		/// Returns LTV as Permill (e.g., 750000 = 75%)
+		pub fn calculate_ltv(loan_id: T::LoanId) -> Result<Permill, DispatchError> {
+			let loan = Loans::<T>::get(loan_id).ok_or(Error::<T>::LoanNotFound)?;
+
+			// Get current collateral value in loan currency
+			let collateral_value = Self::get_collateral_value(
+				loan.collateral_vtoken,
+				loan.collateral_amount,
+				loan.loan_currency,
+			)?;
+
+			// LTV = (loan_amount / collateral_value) * 100%
+			let ltv: Permill = Permill::from_rational(loan.loan_amount, collateral_value);
+
+			Ok(ltv)
+		}
+
+		/// Get collateral value in terms of loan currency
+		/// Example: 1000 vDOT worth how much USDC?
+		pub fn get_collateral_value(
+			collateral_currency: CurrencyId,
+			collateral_amount: Balance,
+			loan_currency: CurrencyId,
+		) -> Result<Balance, DispatchError> {
+			// Get price of collateral in USD (or base currency)
+			let collateral_price = T::PriceProvider::get_price(&collateral_currency)
+				.ok_or(Error::<T>::PriceNotAvailable)?;
+
+			// Get price of loan currency in USD
+			let loan_price =
+				T::PriceProvider::get_price(&loan_currency).ok_or(Error::<T>::PriceNotAvailable)?;
+
+			// Calculate collateral value in loan currency
+			// value = (collateral_amount * collateral_price) / loan_price
+			let collateral_value_usd = collateral_price
+				.checked_mul_int(collateral_amount)
+				.ok_or(Error::<T>::ArithmeticOverflow)?;
+
+			let value = loan_price
+				.reciprocal()
+				.and_then(|reciprocal| reciprocal.checked_mul_int(collateral_value_usd))
+				.ok_or(Error::<T>::ArithmeticOverflow)?;
+
+			Ok(value)
+		}
+
+		/// Check if loan is eligible for liquidation
+		pub fn is_liquidatable(loan_id: T::LoanId) -> Result<bool, DispatchError> {
+			let loan = Loans::<T>::get(loan_id).ok_or(Error::<T>::LoanNotFound)?;
+
+			// Only active loans can be liquidated
+			if loan.status != LoanStatus::Active {
+				return Ok(false);
+			}
+
+			let current_ltv = Self::calculate_ltv(loan_id)?;
+			let threshold = T::LiquidationThreshold::get();
+
+			Ok(current_ltv >= threshold)
+		}
+
+		fn do_claim_staking_rewards(loan_id: T::LoanId) -> Result<Balance, DispatchError> {
+			let loan = Loans::<T>::get(loan_id).ok_or(Error::<T>::LoanNotFound)?;
+
+			ensure!(loan.status == LoanStatus::Active, Error::<T>::LoanNotActive);
+
+			let current_balance =
+				T::MultiCurrency::free_balance(loan.collateral_vtoken, &Self::account_id());
+
+			let original_amount = OriginalCollateral::<T>::get(loan_id);
+
+			// Calculate rewards earned (current - original)
+			let rewards = current_balance.saturating_sub(original_amount);
+
+			// If no rewards, return early with 0 (don't fail)
+			if rewards == 0 {
+				return Ok(0);
+			}
+
+			let platform_share = T::StakingRewardFee::get().mul_floor(rewards);
+
+			T::MultiCurrency::transfer(
+				loan.collateral_vtoken,
+				&Self::account_id(),
+				&T::TreasuryAccount::get(),
+				platform_share,
+				ExistenceRequirement::AllowDeath,
+			)?;
+
+			// Emit event
+			Self::deposit_event(Event::RewardsClaimed {
+				loan_id,
+				total_rewards: rewards,
+				platform_share,
+				user_share: rewards.saturating_sub(platform_share),
+			});
+
+			Ok(platform_share)
+		}
 	}
 
 	#[pallet::call]
@@ -219,43 +331,82 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::claim_rewards())]
 		pub fn claim_staking_rewards(origin: OriginFor<T>, loan_id: T::LoanId) -> DispatchResult {
 			ensure_signed(origin)?; // Anyone can trigger
+			Self::do_claim_staking_rewards(loan_id)?;
+			Ok(())
+		}
 
-			let loan = Loans::<T>::get(loan_id).ok_or(Error::<T>::LoanNotFound)?;
+		/// Liquidate an under-collateralized loan
+		/// Anyone can call this to liquidate unhealthy loans
+		#[pallet::call_index(3)]
+		#[pallet::weight(T::WeightInfo::liquidate_loan())]
+		pub fn liquidate_loan(origin: OriginFor<T>, loan_id: T::LoanId) -> DispatchResult {
+			let liquidator = ensure_signed(origin)?;
 
-			// Only claim from active loans
+			// Get loan details
+			let mut loan = Loans::<T>::get(loan_id).ok_or(Error::<T>::LoanNotFound)?;
+
+			// Verify loan is active
 			ensure!(loan.status == LoanStatus::Active, Error::<T>::LoanNotActive);
 
-			// Get current vDOT balance (includes accumulated rewards)
-			let current_balance =
-				T::MultiCurrency::free_balance(loan.collateral_vtoken, &Self::account_id());
+			// Check if loan is eligible for liquidation
+			ensure!(
+				Self::is_liquidatable(loan_id)?,
+				Error::<T>::LoanNotLiquidatable
+			);
+
+			// Try to claim staking rewards for platform (ignore if no rewards available)
+			let _ = Self::do_claim_staking_rewards(loan_id);
 
 			// Get original collateral amount
 			let original_amount = OriginalCollateral::<T>::get(loan_id);
 
-			// Calculate rewards earned (current - original)
-			let rewards = current_balance.saturating_sub(original_amount);
+			// Get current vDOT balance (includes accumulated rewards of loanee)
+			let current_balance =
+				T::MultiCurrency::free_balance(loan.collateral_vtoken, &Self::account_id());
 
-			// Only proceed if there are rewards to claim
-			ensure!(rewards > 0, Error::<T>::NoRewardsToClaim);
+			// Calculate rewards earned by loanee (current - original)
+			let loanee_rewards = current_balance.saturating_sub(original_amount);
 
-			// Calculate platform's share (e.g., 30%)
-			let platform_share = T::StakingRewardFee::get().mul_floor(rewards);
+			if loanee_rewards > 0 {
+				// Transfer Loanee rewards to loanee
+				T::MultiCurrency::transfer(
+					loan.collateral_vtoken,
+					&Self::account_id(),
+					&loan.borrower,
+					loanee_rewards,
+					ExistenceRequirement::AllowDeath,
+				)?;
+			}
 
-			// Transfer platform's share to treasury
+			// Liquidator pays off the loan
 			T::MultiCurrency::transfer(
-				loan.collateral_vtoken,
+				loan.loan_currency,
+				&liquidator,
 				&Self::account_id(),
-				&T::TreasuryAccount::get(),
-				platform_share,
+				loan.loan_amount,
 				ExistenceRequirement::AllowDeath,
 			)?;
 
+			// Liquidator receives collateral
+			T::MultiCurrency::transfer(
+				loan.collateral_vtoken,
+				&Self::account_id(),
+				&liquidator,
+				loan.collateral_amount,
+				ExistenceRequirement::AllowDeath,
+			)?;
+
+			// Update loan status
+			loan.status = LoanStatus::Liquidated;
+			Loans::<T>::insert(loan_id, loan.clone());
+
 			// Emit event
-			Self::deposit_event(Event::RewardsClaimed {
+			Self::deposit_event(Event::LoanLiquidated {
 				loan_id,
-				total_rewards: rewards,
-				platform_share,
-				user_share: rewards.saturating_sub(platform_share),
+				borrower: loan.borrower,
+				liquidator: liquidator.clone(),
+				collateral_liquidated: loan.collateral_amount,
+				debt_covered: loan.loan_amount,
 			});
 
 			Ok(())
@@ -307,11 +458,13 @@ pub mod pallet {
 			loan_id: T::LoanId,
 			borrower: T::AccountId,
 		},
-		/// Loan liquidated [loan_id, borrower, liquidator]
+		/// Loan liquidated [loan_id, borrower, liquidator, collateral_liquidated, debt_covered]
 		LoanLiquidated {
 			loan_id: T::LoanId,
 			borrower: T::AccountId,
 			liquidator: T::AccountId,
+			collateral_liquidated: Balance,
+			debt_covered: Balance,
 		},
 
 		/// Staking rewards claimed [loan_id, total_rewards, platform_share, user_share]
@@ -345,5 +498,7 @@ pub mod pallet {
 		InvalidCollateralCurrency,
 		/// No rewards available to claim
 		NoRewardsToClaim,
+		/// Loan is not eligible for liquidation (health factor is good)
+		LoanNotLiquidatable,
 	}
 }
