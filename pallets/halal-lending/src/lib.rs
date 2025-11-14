@@ -348,23 +348,35 @@ pub mod pallet {
 
         #[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::distribute_cycle_rewards())]
-        pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> DispatchResult {
-            let mut total_asset_value = 0u128;
-            for (loan_id, loan) in Loans::<T>::iter() {
-                if loan.status == LoanStatus::Active {
-                    total_asset_value += loan.collateral_amount;
-                    total_asset_value += LoanRewards::<T>::get(loan_id); // Assuming loan.id is the correct field
-                }
-            }
-            for (loan_id, loan) in Loans::<T>::iter() {
-                if loan.status == LoanStatus::Active {
-                    let loanee_rewards = cycle_rewards * loan.collateral_amount / total_asset_value;
-                    LoanRewards::<T>::insert(loan_id, LoanRewards::<T>::get(loan_id) + loanee_rewards);
-                }
-            }
-            Ok(())
-			
-        }
+pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> DispatchResult {
+			let active_loans: Vec<_> = Loans::<T>::iter()
+				.filter(|(_, loan)| loan.status == LoanStatus::Active)
+				.collect();
+
+			if active_loans.is_empty() {
+				return Ok(());
+			}
+
+			let total_asset_value: Balance = active_loans
+				.iter()
+				.map(|(loan_id, loan)| {
+					loan.collateral_amount
+						.saturating_add(LoanRewards::<T>::get(loan_id))
+				})
+				.sum();
+
+			for (loan_id, loan) in active_loans {
+				let loanee_rewards = cycle_rewards
+					.saturating_mul(loan.collateral_amount)
+					.saturating_div(total_asset_value);
+
+				LoanRewards::<T>::mutate(loan_id, |rewards| {
+					*rewards = rewards.saturating_add(loanee_rewards);
+				});
+			}
+
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
