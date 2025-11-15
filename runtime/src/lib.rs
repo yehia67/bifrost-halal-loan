@@ -170,7 +170,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("parachain-template-runtime"),
 	impl_name: alloc::borrow::Cow::Borrowed("parachain-template-runtime"),
 	authoring_version: 1,
-	spec_version: 1,
+	spec_version: 2,
 	impl_version: 0,
 	apis: apis::RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -288,6 +288,10 @@ mod runtime {
 	#[runtime::pallet_index(15)]
 	pub type Sudo = pallet_sudo;
 
+	// Utility pallet
+	#[runtime::pallet_index(16)]
+	pub type Utility = pallet_utility;
+
 	// Collator support. The order of these 4 are important and shall not change.
 	#[runtime::pallet_index(20)]
 	pub type Authorship = pallet_authorship;
@@ -313,6 +317,10 @@ mod runtime {
 	// Template
 	#[runtime::pallet_index(50)]
 	pub type TemplatePallet = pallet_parachain_template;
+	#[runtime::pallet_index(51)]
+	pub type CustomPallet = custom_pallet;
+	#[runtime::pallet_index(52)]
+	pub type HalalLending = pallet_halal_lending;
 }
 
 #[docify::export(register_validate_block)]

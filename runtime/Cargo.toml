@@ -1,7 +1,7 @@
 [package]
 name = "parachain-template-runtime"
 description = "A parachain runtime template built with Substrate and Cumulus, part of Polkadot Sdk."
-version = "0.1.0"
+version = "0.2.0"
 license = "Unlicense"
 authors.workspace = true
 homepage.workspace = true
@@ -23,7 +23,9 @@ docify = { workspace = true }
 hex-literal = { optional = true, workspace = true, default-features = true }
 log = { workspace = true }
 pallet-parachain-template.workspace = true
-polkadot-sdk = { workspace = true, features = ["cumulus-pallet-aura-ext", "cumulus-pallet-session-benchmarking", "cumulus-pallet-weight-reclaim", "cumulus-pallet-xcm", "cumulus-pallet-xcmp-queue", "cumulus-primitives-aura", "cumulus-primitives-core", "cumulus-primitives-utility", "pallet-aura", "pallet-authorship", "pallet-balances", "pallet-collator-selection", "pallet-message-queue", "pallet-session", "pallet-sudo", "pallet-timestamp", "pallet-transaction-payment", "pallet-transaction-payment-rpc-runtime-api", "pallet-xcm", "parachains-common", "polkadot-parachain-primitives", "polkadot-runtime-common", "runtime", "staging-parachain-info", "staging-xcm", "staging-xcm-builder", "staging-xcm-executor"], default-features = false }
+polkadot-sdk = { workspace = true, features = [ "pallet-utility", "cumulus-pallet-aura-ext", "cumulus-pallet-session-benchmarking", "cumulus-pallet-weight-reclaim", "cumulus-pallet-xcm", "cumulus-pallet-xcmp-queue", "cumulus-primitives-aura", "cumulus-primitives-core", "cumulus-primitives-utility", "pallet-aura", "pallet-authorship", "pallet-balances", "pallet-collator-selection", "pallet-message-queue", "pallet-session", "pallet-sudo", "pallet-timestamp", "pallet-transaction-payment", "pallet-transaction-payment-rpc-runtime-api", "pallet-xcm", "parachains-common", "polkadot-parachain-primitives", "polkadot-runtime-common", "runtime", "staging-parachain-info", "staging-xcm", "staging-xcm-builder", "staging-xcm-executor"], default-features = false }
+custom-pallet = { path = "../pallets/custom-pallet", default-features = false }
+pallet-halal-lending = { path = "../pallets/halal-lending", default-features = false }
 scale-info = { features = ["derive"], workspace = true }
 serde_json = { workspace = true, default-features = false, features = ["alloc"] }
 smallvec = { workspace = true, default-features = true }
@@ -39,6 +41,8 @@ std = [
 	"scale-info/std",
 	"serde_json/std",
 	"substrate-wasm-builder",
+	"custom-pallet/std",
+	"pallet-halal-lending/std",
 ]
 
 runtime-benchmarks = [
@@ -46,12 +50,15 @@ runtime-benchmarks = [
 	"hex-literal",
 	"pallet-parachain-template/runtime-benchmarks",
 	"polkadot-sdk/runtime-benchmarks",
+	"custom-pallet/runtime-benchmarks",
+	"pallet-halal-lending/runtime-benchmarks",
 ]
 
 try-runtime = [
 	"cumulus-pallet-parachain-system/try-runtime",
 	"pallet-parachain-template/try-runtime",
 	"polkadot-sdk/try-runtime",
+	"pallet-halal-lending/try-runtime",
 ]
 
 # Enable the metadata hash generation.

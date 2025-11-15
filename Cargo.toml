@@ -8,7 +8,8 @@ edition = "2021"
 [workspace]
 default-members = ["pallets/template", "runtime"]
 members = [
-    "node",
+    "node", "pallets/custom-pallet",
+    "pallets/halal-lending",
     "pallets/template",
     "runtime",
 ]
@@ -43,4 +44,3 @@ panic = "unwind"
 codegen-units = 1
 inherits = "release"
 lto = true
-

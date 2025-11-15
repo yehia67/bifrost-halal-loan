@@ -34,7 +34,7 @@ use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::{
 	derive_impl,
-	dispatch::DispatchClass,
+	dispatch::{DispatchClass, DispatchResult},
 	parameter_types,
 	traits::{
 		ConstBool, ConstU32, ConstU64, ConstU8, EitherOfDiverse, TransformOrigin, VariantCountOf,
@@ -52,12 +52,13 @@ use polkadot_runtime_common::{
 	xcm_sender::NoPriceForMessageDelivery, BlockHashCount, SlowAdjustingFeeUpdate,
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_runtime::Perbill;
+use sp_runtime::{Perbill, Permill};
 use sp_version::RuntimeVersion;
 use xcm::latest::prelude::BodyId;
 
 // Local module imports
 use super::{
+	OriginCaller,
 	weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
 	AccountId, Aura, Balance, Balances, Block, BlockNumber, CollatorSelection, ConsensusHook, Hash,
 	MessageQueue, Nonce, PalletInfo, ParachainSystem, Runtime, RuntimeCall, RuntimeEvent,
@@ -320,4 +321,75 @@ impl pallet_collator_selection::Config for Runtime {
 impl pallet_parachain_template::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_parachain_template::weights::SubstrateWeight<Runtime>;
+}
+
+// Configure utility pallet.
+impl pallet_utility::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type PalletsOrigin = OriginCaller;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+}
+// Define counter max value runtime constant.
+parameter_types! {
+    pub const CounterMaxValue: u32 = 500;
+}
+
+// Configure custom pallet.
+impl custom_pallet::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type CounterMaxValue = CounterMaxValue;
+    type WeightInfo = custom_pallet::weights::SubstrateWeight<Runtime>;
+}
+
+// Configure halal-lending pallet.
+parameter_types! {
+    pub const MaxLTV: Permill = Permill::from_percent(50); // 50% max LTV
+    pub const LiquidationThreshold: Permill = Permill::from_percent(75); // 75% liquidation threshold
+    pub const LiquidationBonus: Permill = Permill::from_percent(5); // 5% liquidation bonus
+    pub const StakingRewardFee: Permill = Permill::from_percent(30); // 30% platform fee
+    pub const HalalLendingPalletId: PalletId = PalletId(*b"hlallend");
+    pub HalalTreasuryAccount: AccountId = AccountId::from([1u8; 32]); // Placeholder treasury account
+}
+
+// Simple multi-currency implementation using Balances pallet
+pub struct SimpleMultiCurrency;
+impl pallet_halal_lending::MultiCurrency<AccountId> for SimpleMultiCurrency {
+    type CurrencyId = u32;
+    type Balance = u128;
+
+    fn transfer(
+        _currency_id: Self::CurrencyId,
+        from: &AccountId,
+        to: &AccountId,
+        amount: Self::Balance,
+        _existence_requirement: frame_support::traits::ExistenceRequirement,
+    ) -> DispatchResult {
+        // Use the Mutate trait directly instead of dispatchable
+        use frame_support::traits::fungible::Mutate;
+        Balances::transfer(
+            from,
+            to,
+            amount,
+            frame_support::traits::tokens::Preservation::Expendable,
+        ).map(|_| ())
+    }
+
+    fn free_balance(_currency_id: Self::CurrencyId, who: &AccountId) -> Self::Balance {
+        Balances::free_balance(who)
+    }
+}
+
+impl pallet_halal_lending::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type MultiCurrency = SimpleMultiCurrency;
+    type PriceProvider = pallet_halal_lending::Pallet<Runtime>;
+    type LoanId = u32;
+    type MaxLTV = MaxLTV;
+    type LiquidationThreshold = LiquidationThreshold;
+    type LiquidationBonus = LiquidationBonus;
+    type StakingRewardFee = StakingRewardFee;
+    type TreasuryAccount = HalalTreasuryAccount;
+    type PalletId = HalalLendingPalletId;
+    type WeightInfo = ();
 }
