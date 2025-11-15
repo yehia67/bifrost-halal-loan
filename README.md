@@ -1,5 +1,3 @@
-<div align="center">
-
 # Halal Lending Pallet
 
 > Zero-interest lending pallet for Substrate/Polkadot
