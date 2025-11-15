@@ -66,7 +66,7 @@ pub mod pallet {
 			Balance = Balance,
 		>;
 
-		type PriceProvider: PriceProvider<CurrencyId, Price = FixedU128>;
+		type PriceProvider: PriceProvider;
 
 		/// Loan ID type
 		type LoanId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaxEncodedLen;
@@ -122,11 +122,13 @@ pub mod pallet {
 		) -> Result<Balance, DispatchError> {
 			// Get price of collateral in USD (or base currency)
 			let collateral_price = T::PriceProvider::get_price(&collateral_currency)
-				.ok_or(Error::<T>::PriceNotAvailable)?;
+				.ok_or(Error::<T>::PriceNotAvailable)?
+				.0; // Extract price from (price, timestamp) tuple
 
 			// Get price of loan currency in USD
-			let loan_price =
-				T::PriceProvider::get_price(&loan_currency).ok_or(Error::<T>::PriceNotAvailable)?;
+			let loan_price = T::PriceProvider::get_price(&loan_currency)
+				.ok_or(Error::<T>::PriceNotAvailable)?
+				.0; // Extract price from (price, timestamp) tuple
 
 			// Calculate collateral value in loan currency
 			// value = (collateral_amount * collateral_price) / loan_price

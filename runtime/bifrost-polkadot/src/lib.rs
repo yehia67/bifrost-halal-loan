@@ -317,7 +317,7 @@ impl pallet_timestamp::Config for Runtime {
 	type MinimumPeriod = ConstU64<{ SLOT_DURATION / 2 }>;
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = Moment;
-	type OnTimestampSet = Aura;
+	type OnTimestampSet = ();
 	type WeightInfo = pallet_timestamp::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1361,6 +1361,27 @@ impl lend_market::Config for Runtime {
 }
 
 parameter_types! {
+	pub const HalalLendingMaxLTV: Permill = Permill::from_percent(50);
+	pub const HalalLendingLiquidationThreshold: Permill = Permill::from_percent(75);
+	pub const HalalLendingLiquidationBonus: Permill = Permill::from_percent(5);
+	pub const HalalLendingStakingRewardFee: Permill = Permill::from_percent(10);
+	pub HalalLendingTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
+}
+
+impl bifrost_halal_lending::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MultiCurrency = Currencies;
+	type PriceProvider = Prices;
+	type LoanId = u64;
+	type MaxLTV = HalalLendingMaxLTV;
+	type LiquidationThreshold = HalalLendingLiquidationThreshold;
+	type LiquidationBonus = HalalLendingLiquidationBonus;
+	type WeightInfo = ();
+	type StakingRewardFee = HalalLendingStakingRewardFee;
+	type TreasuryAccount = HalalLendingTreasuryAccount;
+}
+
+parameter_types! {
 	pub const OracleMaxMembers: u32 = 100;
 }
 
@@ -1711,14 +1732,15 @@ construct_runtime! {
 		StablePool: bifrost_stable_pool = 129,
 		VtokenVoting: bifrost_vtoken_voting = 130,
 		LendMarket: lend_market = 131,
-		Prices: pallet_prices = 132,
-		Oracle: orml_oracle::<Instance1> = 133,
-		OracleMembership: pallet_membership::<Instance3> = 134,
-		LeverageStaking: leverage_staking = 135,
-		ChannelCommission: bifrost_channel_commission = 136,
-		CloudsConvert: bifrost_clouds_convert = 137,
-		BuyBack: bifrost_buy_back = 138,
-		SlpV2: bifrost_slp_v2 = 139,
+		HalalLending: bifrost_halal_lending = 132,
+		Prices: pallet_prices = 133,
+		Oracle: orml_oracle::<Instance1> = 134,
+		OracleMembership: pallet_membership::<Instance3> = 135,
+		LeverageStaking: leverage_staking = 136,
+		ChannelCommission: bifrost_channel_commission = 137,
+		CloudsConvert: bifrost_clouds_convert = 138,
+		BuyBack: bifrost_buy_back = 139,
+		SlpV2: bifrost_slp_v2 = 140,
 		PKBridge: bifrost_p_k_bridge = 141,
 	}
 }

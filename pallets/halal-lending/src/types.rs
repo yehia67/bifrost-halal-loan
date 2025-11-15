@@ -30,10 +30,8 @@ pub struct LoanPosition<AccountId, BlockNumber> {
 // Type alias for cleaner code
 pub type LoanPositionOf<T> =
 	LoanPosition<<T as frame_system::Config>::AccountId, BlockNumberFor<T>>;
-pub trait PriceProvider<CurrencyId> {
-	type Price;
-	fn get_price(currency_id: &CurrencyId) -> Option<Self::Price>;
-}
+// Use Bifrost's existing OraclePriceProvider trait
+pub use bifrost_primitives::OraclePriceProvider as PriceProvider;
 
 /// Weight functions trait (can use default weights for POC)
 pub trait WeightInfo {

@@ -149,6 +149,7 @@ bifrost-farming-rpc-runtime-api = { workspace = true }
 bifrost-fee-share = { workspace = true }
 bifrost-flexible-fee = { workspace = true }
 bifrost-flexible-fee-rpc-runtime-api = { workspace = true }
+bifrost-halal-lending = { workspace = true }
 bifrost-primitives = { workspace = true }
 bifrost-runtime-common = { workspace = true }
 bifrost-salp = { workspace = true }
@@ -283,6 +284,7 @@ std = [
 	"bifrost-fee-share/std",
 	"bifrost-flexible-fee-rpc-runtime-api/std",
 	"bifrost-flexible-fee/std",
+	"bifrost-halal-lending/std",
 	"bifrost-primitives/std",
 	"bifrost-runtime-common/std",
 	"bifrost-salp-rpc-runtime-api/std",
@@ -382,6 +384,7 @@ runtime-benchmarks = [
 	"bifrost-vtoken-voting/runtime-benchmarks",
 	"bifrost-xcm-interface/runtime-benchmarks",
 	"bifrost-flexible-fee/runtime-benchmarks",
+	"bifrost-halal-lending/runtime-benchmarks",
 	"sp-api/disable-logging",
 	"lend-market/runtime-benchmarks",
 	"bifrost-channel-commission/runtime-benchmarks",
@@ -401,6 +404,7 @@ try-runtime = [
 	"bifrost-farming/try-runtime",
 	"bifrost-fee-share/try-runtime",
 	"bifrost-flexible-fee/try-runtime",
+	"bifrost-halal-lending/try-runtime",
 	"bifrost-salp/try-runtime",
 	"bifrost-slp/try-runtime",
 	"bifrost-slp-v2/try-runtime",
