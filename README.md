@@ -25,8 +25,11 @@ cargo build --release
 
 # 2. Generate local chain spec
 chain-spec-builder create -t development \
+--relay-chain paseo \
+--para-id 1000 \
 --runtime ./target/release/wbuild/parachain-template-runtime/parachain_template_runtime.compact.compressed.wasm \
 named-preset development
+
 
 # 3. Start local development node
 polkadot-omni-node --chain plain_chain_spec.json \
