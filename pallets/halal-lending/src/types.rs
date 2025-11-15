@@ -22,7 +22,6 @@ pub struct LoanPosition<AccountId, BlockNumber> {
 	pub collateral_amount: Balance,
 	pub loan_currency: CurrencyId,
 	pub loan_amount: Balance,
-    pub loan_reward: Balance,
 	pub created_at: BlockNumber,
 	pub status: LoanStatus,
 }

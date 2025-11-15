@@ -49,11 +49,11 @@ pub mod pallet {
 	#[pallet::getter(fn next_loan_id)]
 	pub type NextLoanId<T: Config> = StorageValue<_, T::LoanId, ValueQuery>;
 
-    /// Track rewards for each loan
-    #[pallet::storage]
-    #[pallet::getter(fn loan_rewards)]
-    pub type LoanRewards<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::LoanId, Balance, ValueQuery>;
+	/// Track rewards for each loan
+	#[pallet::storage]
+	#[pallet::getter(fn loan_rewards)]
+	pub type LoanRewards<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::LoanId, Balance, ValueQuery>;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -156,7 +156,6 @@ pub mod pallet {
 
 			Ok(current_ltv >= threshold)
 		}
-
 	}
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -194,7 +193,6 @@ pub mod pallet {
 				collateral_amount,
 				loan_currency,
 				loan_amount,
-                loan_reward: 0u128,
 				created_at: <frame_system::Pallet<T>>::block_number(),
 				status: LoanStatus::Active,
 			};
@@ -202,7 +200,7 @@ pub mod pallet {
 			// Store loan
 			Loans::<T>::insert(loan_id, loan);
 
-            LoanRewards::<T>::insert(loan_id, 0u128);
+			LoanRewards::<T>::insert(loan_id, 0u128);
 
 			UserLoans::<T>::try_mutate(&who, |loans| {
 				if let Some(ref mut loan_vec) = loans {
@@ -267,8 +265,8 @@ pub mod pallet {
 				ExistenceRequirement::AllowDeath,
 			)?;
 
-            // Claim rewards for loaner and loanee
-            Self::claim_loan_rewards(loan_id)?;
+			// Claim rewards for loaner and loanee
+			Self::claim_loan_rewards(loan_id)?;
 
 			// Return collateral to user
 			T::MultiCurrency::transfer(
@@ -290,7 +288,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-
 		/// Liquidate an under-collateralized loan
 		/// Anyone can call this to liquidate unhealthy loans
 		#[pallet::call_index(3)]
@@ -309,8 +306,8 @@ pub mod pallet {
 				Self::is_liquidatable(loan_id)?,
 				Error::<T>::LoanNotLiquidatable
 			);
-            
-            Self::claim_loan_rewards(loan_id)?;
+
+			Self::claim_loan_rewards(loan_id)?;
 
 			// Liquidator pays off the loan
 			T::MultiCurrency::transfer(
@@ -346,9 +343,9 @@ pub mod pallet {
 			Ok(())
 		}
 
-        #[pallet::call_index(2)]
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::distribute_cycle_rewards())]
-pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> DispatchResult {
+		pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> DispatchResult {
 			let active_loans: Vec<_> = Loans::<T>::iter()
 				.filter(|(_, loan)| loan.status == LoanStatus::Active)
 				.collect();
@@ -357,6 +354,7 @@ pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> Disp
 				return Ok(());
 			}
 
+			let len_u32 = active_loans.len() as u32;
 			let total_asset_value: Balance = active_loans
 				.iter()
 				.map(|(loan_id, loan)| {
@@ -374,6 +372,13 @@ pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> Disp
 					*rewards = rewards.saturating_add(loanee_rewards);
 				});
 			}
+
+			// Emit event
+			Self::deposit_event(Event::CycleRewardsDistributed {
+				cycle_rewards,
+				total_asset_value,
+				n_active_loans: len_u32,
+			});
 
 			Ok(())
 		}
@@ -406,7 +411,7 @@ pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> Disp
 			}
 		}
 
-        /// Claim accumulated staking rewards from locked collateral
+		/// Claim accumulated staking rewards from locked collateral
 		/// Should be called internally at loan dissolving: (repayment or liquidation)
 		pub fn claim_loan_rewards(loan_id: T::LoanId) -> DispatchResult {
 			let loan = Loans::<T>::get(loan_id).ok_or(Error::<T>::LoanNotFound)?;
@@ -414,7 +419,7 @@ pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> Disp
 			// Only claim from active loans
 			ensure!(loan.status == LoanStatus::Active, Error::<T>::LoanNotActive);
 
-            let rewards = LoanRewards::<T>::get(loan_id);
+			let rewards = LoanRewards::<T>::get(loan_id);
 
 			// If no rewards, return early with 0
 			if rewards == 0 {
@@ -424,17 +429,17 @@ pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> Disp
 			// Calculate platform's share (e.g., 30%)
 			let platform_share = T::StakingRewardFee::get().mul_floor(rewards);
 
-            // Calculate rewards earned by loanee (rewards - platform_share)
-            let loanee_rewards = rewards.saturating_sub(platform_share);
+			// Calculate rewards earned by loanee (rewards - platform_share)
+			let loanee_rewards = rewards.saturating_sub(platform_share);
 
-            // Transfer Loanee rewards to loanee
-            T::MultiCurrency::transfer(
-                loan.collateral_vtoken,
-                &Self::account_id(),
-                &loan.borrower,
-                loanee_rewards,
-                ExistenceRequirement::AllowDeath,
-            )?;
+			// Transfer Loanee rewards to loanee
+			T::MultiCurrency::transfer(
+				loan.collateral_vtoken,
+				&Self::account_id(),
+				&loan.borrower,
+				loanee_rewards,
+				ExistenceRequirement::AllowDeath,
+			)?;
 
 			// Transfer platform's share to treasury
 			T::MultiCurrency::transfer(
@@ -453,11 +458,10 @@ pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> Disp
 				user_share: loanee_rewards,
 			});
 
-            // Nullify rewards of loan after distribution
+			// Nullify rewards of loan after distribution
 			LoanRewards::<T>::insert(loan_id, 0u128);
 			Ok(())
 		}
-
 	}
 
 	#[pallet::event]
@@ -485,7 +489,12 @@ pub fn distribute_cycle_rewards(_: OriginFor<T>, cycle_rewards: Balance) -> Disp
 			collateral_liquidated: Balance,
 			debt_covered: Balance,
 		},
-
+		/// Cycle rewards distributed [cycle_rewards, n_active_loans]
+		CycleRewardsDistributed {
+			cycle_rewards: Balance,
+			total_asset_value: Balance,
+			n_active_loans: u32,
+		},
 		/// Staking rewards claimed [loan_id, total_rewards, platform_share, user_share]
 		RewardsClaimed {
 			loan_id: T::LoanId,
