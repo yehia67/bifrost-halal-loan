@@ -13,7 +13,25 @@ Increase the liquidity potential of liquid staking tokens (such as vDOT) through
 We address the cycle of ever-growing debt by replacing interest with collaboration. By encouraging staking as a long-term investment strategy, users can build wealth while accessing liquidity through interest-free, Sharia-compliant loan: A fair and sustainable financial model for all participants.
 
 ## Motivation
-Our mission is to create a platform that encourages staking DOT, and then fruther staking vDOT in exchange for loans in the form of stable coin. The loanee gets to enjoy the perks of staking their assets, gaining periodical rewards on them, while simulataneously getting money to invest in further endeavours. The platform and the loaner earn a share of the periodical rewards, and the only condition is that if the staked assets' value goes near below that of the loan (with a safe margin), the assets' will be up for sale at a low price; Anyone(liquidator) who can pay back the loan, will buy the assets for cheap.
+Our mission is to create a platform that encourages staking DOT, and then further staking vDOT in exchange for loans in the form of stable coin.
+
+## Strategy
+The loanee gets to enjoy the perks of staking their assets, earning part of the periodic rewards on them, while simultaneously getting money to invest in further endeavours.
+
+Lenders and the platform receive a share of the staking rewards instead of interest, making the model Sharia-compliant and asset-backed.
+
+If the collateral value drops near the loan value (with a safety margin), collateral can be liquidated. A liquidator can repay the loan and buy the collateral at a discount, keeping the system healthy.
+
+## Market Opportunity
+The global Islamic finance market is huge and growing:
+- US$5.4 trillion [estimated in 2024](https://www.greenwich.com/corporate-banking/unlocking-growth-islamic-finance-sees-global-expansion#:~:text=The%20global%20Islamic%20finance%20industry,approximately%2020%25%20of%20total%20assets.)
+- US$ 3.38 trillion projected at the start of 2025, [with over 9% expected annual growth](https://www.greenwich.com/corporate-banking/unlocking-growth-islamic-finance-sees-global-expansion#:~:text=The%20global%20Islamic%20finance%20industry,approximately%2020%25%20of%20total%20assets.)
+- Annual growth rate around 10–12%
+
+The liquid staking (LST) sector is also booming:
+
+- Total value locked (TVL) in liquid staking protocols recently surpassed US$ 86 billion. 
+- As of mid-2025, Layer-1 staking + liquid staking combined base is about US$ 70 billion according to [Binance research.](https://public.bnbstatic.com/static/files/research/half-year-report-2025.pdf)
 
 ## User base
   - **Loanee**
@@ -32,7 +50,6 @@ Our mission is to create a platform that encourages staking DOT, and then fruthe
     - User looks at the liquidation pool 
     - User picks loans to pay back and earn the collateral at a discounted price.
 
-*Please note that the platform is a user that offers loans in addition to earning a percentage of rewards from all active loans.*
 
 ## Functionality overview
 ### Admin:
