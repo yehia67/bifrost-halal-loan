@@ -1,4 +1,4 @@
-// Tests for halal-lending pallet
+// Tests for no-interest-loans pallet
 
 use crate::mock::*;
 use crate::pallet::{Error, Event, LoanStatus, Loans, LoanRewards, NextLoanId};
@@ -24,18 +24,18 @@ fn test_create_loan_flow() {
 		);
 		println!(
 			"Pallet's MOCK_VTOKEN balance: {}",
-			Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id())
+			Tokens::free_balance(MOCK_VTOKEN, &NoInterestLoans::account_id())
 		);
 		println!(
 			"Pallet's MOCK_USDC balance: {}",
-			Tokens::free_balance(MOCK_USDC, &HalalLending::account_id())
+			Tokens::free_balance(MOCK_USDC, &NoInterestLoans::account_id())
 		);
 
 		// Verify initial balances
 		assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &ALICE), 10_000);
 		assert_eq!(Tokens::free_balance(MOCK_USDC, &ALICE), 0);
 		assert_eq!(
-			Tokens::free_balance(MOCK_USDC, &HalalLending::account_id()),
+			Tokens::free_balance(MOCK_USDC, &NoInterestLoans::account_id()),
 			100_000
 		);
 
@@ -49,7 +49,7 @@ fn test_create_loan_flow() {
 		println!("Collateral: {} MOCK_VTOKEN", collateral_amount);
 		println!("Loan amount: {} MOCK_USDC", loan_amount);
 
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			collateral_amount,
@@ -68,11 +68,11 @@ fn test_create_loan_flow() {
 		);
 		println!(
 			"Pallet's MOCK_VTOKEN balance: {}",
-			Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id())
+			Tokens::free_balance(MOCK_VTOKEN, &NoInterestLoans::account_id())
 		);
 		println!(
 			"Pallet's MOCK_USDC balance: {}",
-			Tokens::free_balance(MOCK_USDC, &HalalLending::account_id())
+			Tokens::free_balance(MOCK_USDC, &NoInterestLoans::account_id())
 		);
 
 		// Verify balances after loan creation
@@ -86,11 +86,11 @@ fn test_create_loan_flow() {
 		// - 2,000 MOCK_VTOKEN (1,000 initial + 1,000 received as collateral, earning staking rewards!)
 		// - 99,500 MOCK_USDC (100,000 - 500 lent out)
 		assert_eq!(
-			Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id()),
+			Tokens::free_balance(MOCK_VTOKEN, &NoInterestLoans::account_id()),
 			2_000
 		);
 		assert_eq!(
-			Tokens::free_balance(MOCK_USDC, &HalalLending::account_id()),
+			Tokens::free_balance(MOCK_USDC, &NoInterestLoans::account_id()),
 			99_500
 		);
 
@@ -107,7 +107,7 @@ fn test_create_loan_flow() {
 		assert_eq!(NextLoanId::<Test>::get(), 1);
 
 		// Verify event was emitted
-		System::assert_has_event(RuntimeEvent::HalalLending(Event::LoanCreated {
+		System::assert_has_event(RuntimeEvent::NoInterestLoans(Event::LoanCreated {
 			loan_id: 0,
 			borrower: ALICE,
 			collateral_currency: MOCK_VTOKEN,
@@ -134,7 +134,7 @@ fn test_repay_loan_flow() {
 		let collateral_amount = 1_000;
 		let loan_amount = 500;
 
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			collateral_amount,
@@ -153,7 +153,7 @@ fn test_repay_loan_flow() {
 		);
 
 		// Alice repays the loan (exact amount, no interest!)
-		assert_ok!(HalalLending::repay_loan(
+		assert_ok!(NoInterestLoans::repay_loan(
 			RuntimeOrigin::signed(ALICE),
 			0 // loan_id
 		));
@@ -179,11 +179,11 @@ fn test_repay_loan_flow() {
 		// - 1,000 MOCK_VTOKEN (initial balance, returned collateral to Alice)
 		// - 100,000 MOCK_USDC (got repayment back)
 		assert_eq!(
-			Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id()),
+			Tokens::free_balance(MOCK_VTOKEN, &NoInterestLoans::account_id()),
 			1_000
 		);
 		assert_eq!(
-			Tokens::free_balance(MOCK_USDC, &HalalLending::account_id()),
+			Tokens::free_balance(MOCK_USDC, &NoInterestLoans::account_id()),
 			100_000
 		);
 
@@ -192,7 +192,7 @@ fn test_repay_loan_flow() {
 		assert_eq!(loan.status, LoanStatus::Repaid);
 
 		// Verify event was emitted
-		System::assert_has_event(RuntimeEvent::HalalLending(Event::LoanRepaid {
+		System::assert_has_event(RuntimeEvent::NoInterestLoans(Event::LoanRepaid {
 			loan_id: 0,
 			borrower: ALICE,
 		}));
@@ -208,7 +208,7 @@ fn test_repay_loan_flow() {
 fn test_multiple_loans() {
 	new_test_ext().execute_with(|| {
 		// Alice creates first loan
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			1_000,
@@ -217,7 +217,7 @@ fn test_multiple_loans() {
 		));
 
 		// Bob creates a loan
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(BOB),
 			MOCK_VTOKEN,
 			2_000,
@@ -226,7 +226,7 @@ fn test_multiple_loans() {
 		));
 
 		// Alice creates second loan
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			500,
@@ -261,7 +261,7 @@ fn test_multiple_loans() {
 fn test_repay_loan_not_owner() {
 	new_test_ext().execute_with(|| {
 		// Alice creates a loan
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			1_000,
@@ -271,7 +271,7 @@ fn test_repay_loan_not_owner() {
 
 		// Bob tries to repay Alice's loan - should fail!
 		assert_noop!(
-			HalalLending::repay_loan(RuntimeOrigin::signed(BOB), 0),
+			NoInterestLoans::repay_loan(RuntimeOrigin::signed(BOB), 0),
 			Error::<Test>::NotLoanOwner
 		);
 
@@ -286,7 +286,7 @@ fn test_loan_not_found() {
 	new_test_ext().execute_with(|| {
 		// Try to repay non-existent loan
 		assert_noop!(
-			HalalLending::repay_loan(RuntimeOrigin::signed(ALICE), 999),
+			NoInterestLoans::repay_loan(RuntimeOrigin::signed(ALICE), 999),
 			Error::<Test>::LoanNotFound
 		);
 
@@ -299,7 +299,7 @@ fn test_loan_not_found() {
 fn test_distribute_cycle_rewards() {
     new_test_ext().execute_with(|| {
 		// Alice creates first loan
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			1_000,
@@ -308,7 +308,7 @@ fn test_distribute_cycle_rewards() {
 		));
 
 		// Bob creates a loan
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(BOB),
 			MOCK_VTOKEN,
 			2_000,
@@ -317,7 +317,7 @@ fn test_distribute_cycle_rewards() {
 		));
 
 		// Alice creates second loan
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			500,
@@ -343,19 +343,19 @@ fn test_distribute_cycle_rewards() {
 
         assert_ok!(Tokens::deposit(
 			MOCK_VTOKEN,
-			&HalalLending::account_id(),
+			&NoInterestLoans::account_id(),
 			350 // simulate staking rewards
 		));
 
-        let _ = HalalLending::distribute_cycle_rewards(RuntimeOrigin::signed(ALICE), 350);
+        let _ = NoInterestLoans::distribute_cycle_rewards(RuntimeOrigin::signed(ALICE), 350);
         
         assert_eq!(LoanRewards::<Test>::get(0), 100);
         assert_eq!(LoanRewards::<Test>::get(1), 200);
         assert_eq!(LoanRewards::<Test>::get(2), 50);
         
-        let _ = HalalLending::claim_loan_rewards(0);
+        let _ = NoInterestLoans::claim_loan_rewards(0);
         // Verify event
-		System::assert_has_event(RuntimeEvent::HalalLending(Event::RewardsClaimed {
+		System::assert_has_event(RuntimeEvent::NoInterestLoans(Event::RewardsClaimed {
 			loan_id: 0,
 			total_rewards: 100,
 			platform_share: 30,
@@ -363,16 +363,16 @@ fn test_distribute_cycle_rewards() {
 		}));
         // Verify reward distribution, 30% of each reward
 		assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &TREASURY), 30);
-        let _ = HalalLending::claim_loan_rewards(1);
+        let _ = NoInterestLoans::claim_loan_rewards(1);
         assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &TREASURY), 90);
-        let _ = HalalLending::claim_loan_rewards(2);
+        let _ = NoInterestLoans::claim_loan_rewards(2);
         // 30% of total rewards
         assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &TREASURY), 105);
 
         println!("\n=== AFTER REWARD CLAIM ===");
 		println!(
 			"Pallet vDOT balance: {}",
-			Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id())
+			Tokens::free_balance(MOCK_VTOKEN, &NoInterestLoans::account_id())
 		);
 		println!(
 			"Treasury vDOT balance: {}",
@@ -387,7 +387,7 @@ fn test_distribute_cycle_rewards() {
 #[test]
 fn test_full_flow_with_bifrost_vtokens() {
 	new_test_ext().execute_with(|| {
-		println!("\n=== FULL HALAL LENDING FLOW ===");
+		println!("\n=== FULL No Interest Loans FLOW ===");
 
 		// Step 1: User already has vDOT (minted via Bifrost app)
 		println!("Step 1: Alice has 10,000 vDOT (minted from app.bifrost.io)");
@@ -395,7 +395,7 @@ fn test_full_flow_with_bifrost_vtokens() {
 
 		// Step 2: Create loan using vDOT as collateral
 		println!("Step 2: Alice creates loan with 1,000 vDOT collateral");
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			1_000,
@@ -411,19 +411,19 @@ fn test_full_flow_with_bifrost_vtokens() {
 		// Step 4: Platform holds vDOT (earning staking rewards!)
 		println!("Step 4: Platform holds 2,000 vDOT (1,000 initial + 1,000 collateral, earning staking rewards)");
 		assert_eq!(
-			Tokens::free_balance(MOCK_VTOKEN, &HalalLending::account_id()),
+			Tokens::free_balance(MOCK_VTOKEN, &NoInterestLoans::account_id()),
 			2_000
 		);
 
 		// Step 5: Repay loan
 		println!("Step 5: Alice repays EXACTLY 500 USDC (no interest!)");
-		assert_ok!(HalalLending::repay_loan(RuntimeOrigin::signed(ALICE), 0));
+		assert_ok!(NoInterestLoans::repay_loan(RuntimeOrigin::signed(ALICE), 0));
 
 		// Step 6: Get collateral back
 		println!("Step 6: Alice gets her 1,000 vDOT back");
 		assert_eq!(Tokens::free_balance(MOCK_VTOKEN, &ALICE), 10_000);
 
-		println!("\n✅ COMPLETE HALAL FLOW:");
+		println!("\n✅ COMPLETE No Interest Loans FLOW:");
 		println!("   - No interest charged to borrower");
 		println!("   - Platform earned staking rewards on locked vDOT");
 		println!("   - User got exact collateral back");
@@ -436,7 +436,7 @@ fn test_liquidation_when_ltv_exceeds_threshold() {
 		println!("\n=== LIQUIDATION TEST ===");
 
 		// Setup: Create loan with 1,000 vDOT collateral, 500 USDC loan
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			1_000,
@@ -455,11 +455,11 @@ fn test_liquidation_when_ltv_exceeds_threshold() {
 
 		println!("\n💥 Price crash! vDOT drops to $0.60");
 
-		let ltv = HalalLending::calculate_ltv(0).unwrap();
+		let ltv = NoInterestLoans::calculate_ltv(0).unwrap();
 		println!("  - New LTV: {}%", ltv.deconstruct() as f64 / 10000.0);
 
 		// Verify loan is liquidatable
-		assert!(HalalLending::is_liquidatable(0).unwrap());
+		assert!(NoInterestLoans::is_liquidatable(0).unwrap());
 
 		// Bob liquidates the loan
 		println!("\n🔨 Bob liquidates the loan");
@@ -467,10 +467,10 @@ fn test_liquidation_when_ltv_exceeds_threshold() {
 		// Give Bob enough USDC to cover the debt
 		assert_ok!(Tokens::deposit(MOCK_USDC, &BOB, 500));
 
-		assert_ok!(HalalLending::liquidate_loan(RuntimeOrigin::signed(BOB), 0));
+		assert_ok!(NoInterestLoans::liquidate_loan(RuntimeOrigin::signed(BOB), 0));
 
 		// Verify liquidation results
-		let loan = HalalLending::loans(0).unwrap();
+		let loan = NoInterestLoans::loans(0).unwrap();
 		assert_eq!(loan.status, LoanStatus::Liquidated);
 
 		// Bob should receive collateral
@@ -493,7 +493,7 @@ fn test_liquidation_when_ltv_exceeds_threshold() {
 		println!("  - Loan status: Liquidated");
 
 		// Verify event
-		System::assert_has_event(RuntimeEvent::HalalLending(Event::LoanLiquidated {
+		System::assert_has_event(RuntimeEvent::NoInterestLoans(Event::LoanLiquidated {
 			loan_id: 0,
 			borrower: ALICE,
 			liquidator: BOB,
@@ -507,7 +507,7 @@ fn test_liquidation_when_ltv_exceeds_threshold() {
 fn test_cannot_liquidate_healthy_loan() {
 	new_test_ext().execute_with(|| {
 		// Create healthy loan (LTV = 50%)
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			1_000,
@@ -519,7 +519,7 @@ fn test_cannot_liquidate_healthy_loan() {
 		assert_ok!(Tokens::deposit(MOCK_USDC, &BOB, 500));
 
 		assert_noop!(
-			HalalLending::liquidate_loan(RuntimeOrigin::signed(BOB), 0),
+			NoInterestLoans::liquidate_loan(RuntimeOrigin::signed(BOB), 0),
 			Error::<Test>::LoanNotLiquidatable
 		);
 
@@ -531,7 +531,7 @@ fn test_cannot_liquidate_healthy_loan() {
 fn test_ltv_calculation() {
 	new_test_ext().execute_with(|| {
 		// Create loan
-		assert_ok!(HalalLending::create_loan(
+		assert_ok!(NoInterestLoans::create_loan(
 			RuntimeOrigin::signed(ALICE),
 			MOCK_VTOKEN,
 			1_000,
@@ -540,7 +540,7 @@ fn test_ltv_calculation() {
 		));
 
 		// Calculate LTV
-		let ltv = HalalLending::calculate_ltv(0).unwrap();
+		let ltv = NoInterestLoans::calculate_ltv(0).unwrap();
 
 		// LTV should be 50% (500 / 1000)
 		assert_eq!(ltv, Permill::from_percent(50));

@@ -1,5 +1,5 @@
 [package]
-name = "bifrost-halal-lending"
+name = "bifrost-no-interest-loans"
 version = "0.1.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]

@@ -1361,11 +1361,11 @@ impl lend_market::Config for Runtime {
 }
 
 parameter_types! {
-	pub const HalalLendingMaxLTV: Permill = Permill::from_percent(50);
-	pub const HalalLendingLiquidationThreshold: Permill = Permill::from_percent(75);
-	pub const HalalLendingLiquidationBonus: Permill = Permill::from_percent(5);
-	pub const HalalLendingStakingRewardFee: Permill = Permill::from_percent(10);
-	pub HalalLendingTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
+	pub const NoInterestLoansMaxLTV: Permill = Permill::from_percent(50);
+	pub const NoInterestLoansLiquidationThreshold: Permill = Permill::from_percent(75);
+	pub const NoInterestLoansLiquidationBonus: Permill = Permill::from_percent(5);
+	pub const NoInterestLoansStakingRewardFee: Permill = Permill::from_percent(10);
+	pub NoInterestLoansTreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
 impl bifrost_halal_lending::Config for Runtime {
@@ -1373,12 +1373,12 @@ impl bifrost_halal_lending::Config for Runtime {
 	type MultiCurrency = Currencies;
 	type PriceProvider = Prices;
 	type LoanId = u64;
-	type MaxLTV = HalalLendingMaxLTV;
-	type LiquidationThreshold = HalalLendingLiquidationThreshold;
-	type LiquidationBonus = HalalLendingLiquidationBonus;
+	type MaxLTV = NoInterestLoansMaxLTV;
+	type LiquidationThreshold = NoInterestLoansLiquidationThreshold;
+	type LiquidationBonus = NoInterestLoansLiquidationBonus;
 	type WeightInfo = ();
-	type StakingRewardFee = HalalLendingStakingRewardFee;
-	type TreasuryAccount = HalalLendingTreasuryAccount;
+	type StakingRewardFee = NoInterestLoansStakingRewardFee;
+	type TreasuryAccount = NoInterestLoansTreasuryAccount;
 }
 
 parameter_types! {
@@ -1732,7 +1732,7 @@ construct_runtime! {
 		StablePool: bifrost_stable_pool = 129,
 		VtokenVoting: bifrost_vtoken_voting = 130,
 		LendMarket: lend_market = 131,
-		HalalLending: bifrost_halal_lending = 132,
+		NoInterestLoans: bifrost_halal_lending = 132,
 		Prices: pallet_prices = 133,
 		Oracle: orml_oracle::<Instance1> = 134,
 		OracleMembership: pallet_membership::<Instance3> = 135,

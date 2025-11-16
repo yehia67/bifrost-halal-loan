@@ -14,7 +14,7 @@ pub fn account_id() -> T::AccountId {
 
 This generates a unique account address for the pallet using the ID `"hlallend"`. This account can hold any tokens just like a user account.
 
-### 2. **Token Flow in [create_loan](cci:1://file:///Users/yehiatarek/Documents/projects/rust/bifrost/pallets/halal-lending/src/lib.rs:94:4-161:5)**
+### 2. **Token Flow in [create_loan](cci:1://file:///Users/yehiatarek/Documents/projects/rust/bifrost/pallets/no-interest-loans/src/lib.rs:94:4-161:5)**
 
 Let me trace what happens step by step:
 

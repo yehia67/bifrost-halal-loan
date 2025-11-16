@@ -1,4 +1,4 @@
-# Halal Lending Pallet
+# No Interest Loans Pallet
 
 A truly halal (interest-free) lending protocol for Bifrost. Borrowers repay exactly what they borrowed - no interest, no fees!
 
@@ -32,17 +32,17 @@ A truly halal (interest-free) lending protocol for Bifrost. Borrowers repay exac
 
 ### 1. Compile Check (✅ Working)
 ```bash
-cargo check -p bifrost-halal-lending
+cargo check -p bifrost-no-interest-loans
 ```
 
 ### 2. Run Tests (Once mock runtime is set up)
 ```bash
-cargo test -p bifrost-halal-lending
+cargo test -p bifrost-no-interest-loans
 ```
 
 ### 3. Build the Pallet
 ```bash
-cargo build -p bifrost-halal-lending
+cargo build -p bifrost-no-interest-loans
 ```
 
 ## Quick Function Overview
@@ -78,12 +78,12 @@ pub fn repay_loan(
 ```
 User
   ↓ (deposits vDOT)
-Halal Lending Pallet
+No Interest Loans Pallet
   ↓ (locks vDOT, earns staking rewards)
   ↓ (lends USDC)
 User
   ↓ (repays exact USDC amount)
-Halal Lending Pallet
+No Interest Loans Pallet
   ↓ (returns vDOT)
 User
 ```

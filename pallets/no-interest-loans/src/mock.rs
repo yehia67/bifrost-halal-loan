@@ -1,4 +1,4 @@
-// Mock runtime for testing halal-lending pallet
+// Mock runtime for testing no-interest-loans pallet
 
 use crate as pallet_halal_lending;
 use bifrost_primitives::{Balance, CurrencyId};
@@ -21,7 +21,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system,
 		Tokens: orml_tokens,
-		HalalLending: pallet_halal_lending,
+		NoInterestLoans: pallet_halal_lending,
 	}
 );
 
@@ -126,7 +126,7 @@ impl crate::pallet::PriceProvider<CurrencyId> for MockPriceProvider {
 	}
 }
 
-// Halal Lending configuration
+// No Interest Loans configuration
 parameter_types! {
 	pub const MaxLTV: Permill = Permill::from_percent(50); // 50% max LTV for borrowing
 	pub const LiquidationThreshold: Permill = Permill::from_percent(75); // 75% triggers liquidation
@@ -161,7 +161,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.build_storage()
 		.unwrap();
 
-	let pallet_account = HalalLending::account_id();
+	let pallet_account = NoInterestLoans::account_id();
 
 	orml_tokens::GenesisConfig::<Test> {
 		balances: vec![
