@@ -2018,29 +2018,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bifrost-halal-lending"
-version = "0.1.0"
-dependencies = [
- "bifrost-currencies",
- "bifrost-primitives",
- "bifrost-vtoken-minting",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "orml-tokens",
- "orml-traits",
- "pallet-prices",
- "pallet-traits",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "bifrost-ismp"
 version = "0.8.0"
 dependencies = [
@@ -2201,6 +2178,29 @@ dependencies = [
  "xcm-runtime-apis",
  "zenlink-protocol",
  "zenlink-protocol-runtime-api",
+]
+
+[[package]]
+name = "bifrost-no-interest-loans"
+version = "0.1.0"
+dependencies = [
+ "bifrost-currencies",
+ "bifrost-primitives",
+ "bifrost-vtoken-minting",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-prices",
+ "pallet-traits",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
