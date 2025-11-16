@@ -45,7 +45,7 @@ polkadot-omni-node --chain plain_chain_spec.json \
 - **Decimals**: 12
 - **Symbol**: UNIT
 
-## 🏗️ Halal-Lending Functions
+## 🏗️ no-interest-loans Functions
 
 ### User Functions
 - `createLoan(collateralToken, collateralAmount, loanToken, loanAmount)`
@@ -67,7 +67,7 @@ polkadot-omni-node --chain plain_chain_spec.json \
 
 ### Via Polkadot.js Apps
 1. Go to: https://polkadot.js.org/apps/?rpc=ws://localhost:8845
-2. Navigate to: **Developer** → **Extrinsics** → **halalLending**
+2. Navigate to: **Developer** → **Extrinsics** → **noInterestLoans**
 
 ### Test Example
 ```
@@ -91,14 +91,14 @@ polkadot-omni-node --chain plain_chain_spec.json \
 ## 🧪 Run Unit Tests
 
 ```bash
-# Test the halal-lending pallet
-cargo test --package pallet-halal-lending
+# Test the no-interest-loans pallet
+cargo test --package pallet-no-interest-loans
 
 # Test with output
-cargo test --package pallet-halal-lending -- --nocapture
+cargo test --package pallet-no-interest-loans -- --nocapture
 
 # Test specific function
-cargo test --package pallet-halal-lending test_claim_rewards_on_repayment
+cargo test --package pallet-no-interest-loans test_claim_rewards_on_repayment
 ```
 
 ## 💻 Frontend Integration
@@ -115,16 +115,16 @@ const api = await ApiPromise.create({
 ### Call Functions
 ```javascript
 // Create loan
-await api.tx.halalLending.createLoan(1, amount, 2, loanAmount)
+await api.tx.noInterestLoans.createLoan(1, amount, 2, loanAmount)
   .signAndSend(account);
 
 // Distribute rewards (admin)
-await api.tx.halalLending.distributeCycleRewards(rewardAmount)
+await api.tx.noInterestLoans.distributeCycleRewards(rewardAmount)
   .signAndSend(sudoAccount);
 
 // Query data
-const loan = await api.query.halalLending.loans(loanId);
-const rewards = await api.query.halalLending.loanRewards(loanId);
+const loan = await api.query.noInterestLoans.loans(loanId);
+const rewards = await api.query.noInterestLoans.loanRewards(loanId);
 ```
 
 ---

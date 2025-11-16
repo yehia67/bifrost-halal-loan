@@ -1,6 +1,6 @@
-// Mock runtime for testing halal-lending pallet
+// Mock runtime for testing no-interest-loans pallet
 
-use crate as pallet_halal_lending;
+use crate as pallet_no_interest_loans;
 use crate::pallet::{Balance, CurrencyId};
 use polkadot_sdk::{
     frame_support::{
@@ -26,7 +26,7 @@ polkadot_sdk::frame_support::construct_runtime!(
     {
         System: system,
         Balances: polkadot_sdk::pallet_balances,
-        HalalLending: pallet_halal_lending,
+        NoInterestLoans: pallet_no_interest_loans,
     }
 );
 
@@ -165,10 +165,10 @@ parameter_types! {
     pub const LiquidationBonus: Permill = Permill::from_percent(5); // 5% bonus for liquidators
     pub const StakingRewardFee: Permill = Permill::from_percent(30); // 30%
     pub const TreasuryAccount: u64 = 999; // Treasury account ID
-    pub const HalalLendingPalletId: PalletId = PalletId(*b"hlallend");
+    pub const NoInterestLoansPalletId: PalletId = PalletId(*b"hlallend");
 }
 
-impl pallet_halal_lending::Config for Test {
+impl pallet_no_interest_loans::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type MultiCurrency = MockMultiCurrency;
     type PriceProvider = MockPriceProvider;
@@ -179,7 +179,7 @@ impl pallet_halal_lending::Config for Test {
     type WeightInfo = ();
     type StakingRewardFee = StakingRewardFee;
     type TreasuryAccount = TreasuryAccount;
-    type PalletId = HalalLendingPalletId;
+    type PalletId = NoInterestLoansPalletId;
 }
 
 // Mock currency IDs for testing
@@ -205,7 +205,7 @@ pub fn new_test_ext() -> polkadot_sdk::sp_io::TestExternalities {
             // Give Bob 5,000 tokens
             (BOB, 5_000),
             // Give the pallet 100,000 tokens to lend out
-            (HalalLending::account_id(), 100_000),
+            (NoInterestLoans::account_id(), 100_000),
             // Give treasury some tokens
             (TREASURY, 1_000),
         ],

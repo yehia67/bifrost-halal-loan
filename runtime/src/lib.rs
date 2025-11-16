@@ -320,7 +320,7 @@ mod runtime {
 	#[runtime::pallet_index(51)]
 	pub type CustomPallet = custom_pallet;
 	#[runtime::pallet_index(52)]
-	pub type HalalLending = pallet_halal_lending;
+	pub type NoInterestLoans = pallet_no_interest_loans;
 }
 
 #[docify::export(register_validate_block)]

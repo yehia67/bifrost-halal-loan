@@ -342,19 +342,19 @@ impl custom_pallet::Config for Runtime {
     type WeightInfo = custom_pallet::weights::SubstrateWeight<Runtime>;
 }
 
-// Configure halal-lending pallet.
+// Configure no-interest-loans pallet.
 parameter_types! {
     pub const MaxLTV: Permill = Permill::from_percent(50); // 50% max LTV
     pub const LiquidationThreshold: Permill = Permill::from_percent(75); // 75% liquidation threshold
     pub const LiquidationBonus: Permill = Permill::from_percent(5); // 5% liquidation bonus
     pub const StakingRewardFee: Permill = Permill::from_percent(30); // 30% platform fee
-    pub const HalalLendingPalletId: PalletId = PalletId(*b"hlallend");
+    pub const NoInterestLoansPalletId: PalletId = PalletId(*b"hlallend");
     pub HalalTreasuryAccount: AccountId = AccountId::from([1u8; 32]); // Placeholder treasury account
 }
 
 // Simple multi-currency implementation using Balances pallet
 pub struct SimpleMultiCurrency;
-impl pallet_halal_lending::MultiCurrency<AccountId> for SimpleMultiCurrency {
+impl pallet_no_interest_loans::MultiCurrency<AccountId> for SimpleMultiCurrency {
     type CurrencyId = u32;
     type Balance = u128;
 
@@ -380,16 +380,16 @@ impl pallet_halal_lending::MultiCurrency<AccountId> for SimpleMultiCurrency {
     }
 }
 
-impl pallet_halal_lending::Config for Runtime {
+impl pallet_no_interest_loans::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type MultiCurrency = SimpleMultiCurrency;
-    type PriceProvider = pallet_halal_lending::Pallet<Runtime>;
+    type PriceProvider = pallet_no_interest_loans::Pallet<Runtime>;
     type LoanId = u32;
     type MaxLTV = MaxLTV;
     type LiquidationThreshold = LiquidationThreshold;
     type LiquidationBonus = LiquidationBonus;
     type StakingRewardFee = StakingRewardFee;
     type TreasuryAccount = HalalTreasuryAccount;
-    type PalletId = HalalLendingPalletId;
+    type PalletId = NoInterestLoansPalletId;
     type WeightInfo = ();
 }

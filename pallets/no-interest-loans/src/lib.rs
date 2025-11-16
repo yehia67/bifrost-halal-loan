@@ -468,7 +468,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::distribute_cycle_rewards())]
         pub fn distribute_cycle_rewards(
             origin: OriginFor<T>,
-			cycle_rewards: Balance
+            cycle_rewards: Balance,
         ) -> DispatchResult {
             ensure_root(origin)?;
 
@@ -534,15 +534,15 @@ pub mod pallet {
 
             // Claim rewards before liquidation
             Self::claim_loan_rewards(loan_id)?;
-			
-			// Liquidator pays off the loan
-			T::MultiCurrency::transfer(
-				loan.loan_currency,
-				&liquidator,
-				&Self::account_id(),
-				loan.loan_amount,
-				ExistenceRequirement::AllowDeath,
-			)?;
+
+            // Liquidator pays off the loan
+            T::MultiCurrency::transfer(
+                loan.loan_currency,
+                &liquidator,
+                &Self::account_id(),
+                loan.loan_amount,
+                ExistenceRequirement::AllowDeath,
+            )?;
 
             // Transfer collateral to liquidator
             T::MultiCurrency::transfer(

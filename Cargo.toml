@@ -9,7 +9,7 @@ edition = "2021"
 default-members = ["pallets/template", "runtime"]
 members = [
     "node", "pallets/custom-pallet",
-    "pallets/halal-lending",
+    "pallets/no-interest-loans",
     "pallets/template",
     "runtime",
 ]

@@ -32,17 +32,17 @@ A truly halal (interest-free) lending protocol for Bifrost. Borrowers repay exac
 
 ### 1. Compile Check (✅ Working)
 ```bash
-cargo check -p bifrost-halal-lending
+cargo check -p bifrost-no-interest-loans
 ```
 
 ### 2. Run Tests (Once mock runtime is set up)
 ```bash
-cargo test -p bifrost-halal-lending
+cargo test -p bifrost-no-interest-loans
 ```
 
 ### 3. Build the Pallet
 ```bash
-cargo build -p bifrost-halal-lending
+cargo build -p bifrost-no-interest-loans
 ```
 
 ## Quick Function Overview

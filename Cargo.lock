@@ -8793,16 +8793,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-halal-lending"
-version = "0.1.0"
-dependencies = [
- "log",
- "parity-scale-codec",
- "polkadot-sdk 2503.0.1",
- "scale-info",
-]
-
-[[package]]
 name = "pallet-identity"
 version = "40.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9050,6 +9040,16 @@ checksum = "b386745d5656d2f4ea86a7fd22adb7cda2e28c3bed096eb329634b3ee8037d79"
 dependencies = [
  "parity-scale-codec",
  "polkadot-sdk-frame",
+ "scale-info",
+]
+
+[[package]]
+name = "pallet-no-interest-loans"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "parity-scale-codec",
+ "polkadot-sdk 2503.0.1",
  "scale-info",
 ]
 
@@ -10034,7 +10034,7 @@ dependencies = [
  "docify",
  "hex-literal",
  "log",
- "pallet-halal-lending",
+ "pallet-no-interest-loans",
  "pallet-parachain-template",
  "parity-scale-codec",
  "polkadot-sdk 2503.0.1",
