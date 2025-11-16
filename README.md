@@ -7,7 +7,7 @@
 <h1 align="left">No Interest Loans</a></h1>
 
 ## Overview
-Extend the liquid staking tokens(ex. vDOT) to provide further liquidability via stable coin loans to users. As a low-risk platform, we offer stability for loaners, for loanees, and for liquidators.
+Increase the liquidity potential of liquid staking tokens (such as vDOT) through access to stablecoin loans, encouraging users to remain staked while borrowing against their positions. Our model prioritizes safety and stability across all participants: lenders, borrowers, and liquidators.
 
 ## Problem statement
 As we try to break of the cycle of infinite debt, where time spent paying off the debt only increases the debt and burdens the loanee, we endeavour to establish a more collaborative solution.
