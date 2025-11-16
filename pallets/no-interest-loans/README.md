@@ -1,4 +1,4 @@
-# Halal Lending Pallet
+# No Interest Lending Pallet
 
 A truly halal (interest-free) lending protocol for Bifrost. Borrowers repay exactly what they borrowed - no interest, no fees!
 
@@ -15,15 +15,13 @@ A truly halal (interest-free) lending protocol for Bifrost. Borrowers repay exac
 
 ### What's Working:
 - ✅ Pallet compiles without errors
-- ✅ Core data structures (LoanPosition, LoanStatus)
+- ✅ Core data structures (LoanPosition, LoanStatus, LoanRewards)
 - ✅ Storage items (Loans, UserLoans, NextLoanId)
-- ✅ Basic extrinsics (create_loan, repay_loan)
+- ✅ Basic extrinsics (create_loan, repay_loan, liquidate_loan)
 - ✅ Events and errors defined
 
 ### What's Next:
 - ⏳ Add price oracle integration for LTV calculations
-- ⏳ Add liquidation logic
-- ⏳ Create mock runtime for testing
 - ⏳ Write comprehensive tests
 - ⏳ Add benchmarking
 - ⏳ Integrate with Bifrost runtime
@@ -72,21 +70,6 @@ pub fn repay_loan(
 - **vToken Collateral**: Uses Bifrost's liquid staking tokens
 - **Platform Revenue**: Earns from staking rewards on collateral
 - **Sharia Compliant**: No riba (interest), truly halal
-
-## Architecture
-
-```
-User
-  ↓ (deposits vDOT)
-Halal Lending Pallet
-  ↓ (locks vDOT, earns staking rewards)
-  ↓ (lends USDC)
-User
-  ↓ (repays exact USDC amount)
-Halal Lending Pallet
-  ↓ (returns vDOT)
-User
-```
 
 ## Configuration
 
