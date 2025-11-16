@@ -10,7 +10,7 @@
 Increase the liquidity potential of liquid staking tokens (such as vDOT) through access to stablecoin loans, encouraging users to remain staked while borrowing against their positions. Our model prioritizes safety and stability across all participants: lenders, borrowers, and liquidators.
 
 ## Problem statement
-As we try to break of the cycle of infinite debt, where time spent paying off the debt only increases the debt and burdens the loanee, we endeavour to establish a more collaborative solution.
+We address the cycle of ever-growing debt by replacing interest with collaboration. By encouraging staking as a long-term investment strategy, users can build wealth while accessing liquidity through interest-free, Sharia-compliant loan: A fair and sustainable financial model for all participants.
 
 ## Motivation
 Our mission is to create a platform that encourages staking DOT, and then fruther staking vDOT in exchange for loans in the form of stable coin. The loanee gets to enjoy the perks of staking their assets, gaining periodical rewards on them, while simulataneously getting money to invest in further endeavours. The platform and the loaner earn a share of the periodical rewards, and the only condition is that if the staked assets' value goes near below that of the loan (with a safe margin), the assets' will be up for sale at a low price; Anyone(liquidator) who can pay back the loan, will buy the assets for cheap.
