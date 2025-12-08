@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-mod types;
+pub mod types;
 
 #[cfg(test)]
 mod mock;
@@ -8,6 +8,7 @@ mod mock;
 mod tests;
 
 pub use pallet::*;
+pub use types::PriceProvider;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -24,6 +25,7 @@ pub mod pallet {
 		traits::{AccountIdConversion, AtLeast32BitUnsigned},
 		FixedPointNumber, FixedU128, Permill,
 	};
+	use sp_std::vec::Vec;
 
 	// Import Bifrost types
 	use bifrost_primitives::{Balance, CurrencyId};

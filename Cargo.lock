@@ -1763,7 +1763,7 @@ dependencies = [
 
 [[package]]
 name = "bifrost-cli"
-version = "0.22.1"
+version = "0.22.2"
 dependencies = [
  "bifrost-service",
  "clap",
@@ -2450,6 +2450,7 @@ dependencies = [
  "bifrost-fee-share",
  "bifrost-flexible-fee",
  "bifrost-flexible-fee-rpc-runtime-api",
+ "bifrost-no-interest-loans",
  "bifrost-p-k-bridge",
  "bifrost-parachain-staking",
  "bifrost-primitives",

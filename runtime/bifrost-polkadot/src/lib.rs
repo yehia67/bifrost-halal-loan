@@ -202,7 +202,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: Cow::Borrowed("bifrost_polkadot"),
 	impl_name: Cow::Borrowed("bifrost_polkadot"),
 	authoring_version: 0,
-	spec_version: 22001,
+	spec_version: 22002,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1361,6 +1361,35 @@ impl lend_market::Config for Runtime {
 }
 
 parameter_types! {
+	pub const NoInterestLoansMaxLTV: Permill = Permill::from_percent(50);
+	pub const NoInterestLoansLiquidationThreshold: Permill = Permill::from_percent(75);
+	pub const NoInterestLoansLiquidationBonus: Permill = Permill::from_percent(5);
+	pub const NoInterestLoansStakingRewardFee: Permill = Permill::from_percent(10);
+}
+
+pub struct OraclePriceAdapter;
+impl bifrost_no_interest_loans::PriceProvider<CurrencyId> for OraclePriceAdapter {
+	type Price = FixedU128;
+	fn get_price(currency_id: &CurrencyId) -> Option<Self::Price> {
+		use bifrost_primitives::OraclePriceProvider;
+		Prices::get_price(currency_id).map(|(price, _timestamp)| price)
+	}
+}
+
+impl bifrost_no_interest_loans::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MultiCurrency = Currencies;
+	type PriceProvider = OraclePriceAdapter;
+	type LoanId = u64;
+	type MaxLTV = NoInterestLoansMaxLTV;
+	type LiquidationThreshold = NoInterestLoansLiquidationThreshold;
+	type LiquidationBonus = NoInterestLoansLiquidationBonus;
+	type WeightInfo = ();
+	type StakingRewardFee = NoInterestLoansStakingRewardFee;
+	type TreasuryAccount = BifrostTreasuryAccount;
+}
+
+parameter_types! {
 	pub const OracleMaxMembers: u32 = 100;
 }
 
@@ -1719,6 +1748,7 @@ construct_runtime! {
 		CloudsConvert: bifrost_clouds_convert = 137,
 		BuyBack: bifrost_buy_back = 138,
 		SlpV2: bifrost_slp_v2 = 139,
+		NoInterestLoans: bifrost_no_interest_loans = 140,
 		PKBridge: bifrost_p_k_bridge = 141,
 	}
 }
@@ -1792,10 +1822,6 @@ impl cumulus_pallet_xcmp_queue::migration::v5::V5Config for Runtime {
 	type ChannelList = ParachainSystem;
 }
 
-parameter_types! {
-	pub const CrossInOutName: &'static str = "CrossInOut";
-}
-
 /// All migrations that will run on the next runtime upgrade.
 ///
 /// This contains the combined migrations of the last 10 releases. It allows to skip runtime
@@ -1811,7 +1837,6 @@ pub mod migrations {
 	pub type Unreleased = (
 		// permanent migration, do not remove
 		pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
-		bifrost_slp::migrations::v6::SlpMigrationV6<Runtime>,
 	);
 }
 

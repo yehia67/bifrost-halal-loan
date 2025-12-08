@@ -26,10 +26,6 @@ orml-tokens = { workspace = true }
 pallet-prices = { workspace = true }
 pallet-traits = { workspace = true }
 
-# For vToken handling
-bifrost-vtoken-minting = { workspace = true }
-bifrost-currencies = { workspace = true }
-
 [features]
 default = ["std"]
 std = [
@@ -43,6 +39,7 @@ std = [
     "sp-io/std",
     "bifrost-primitives/std",
     "orml-traits/std",
+    "orml-tokens/std",
     "pallet-prices/std",
     "pallet-traits/std",
     "log/std",
